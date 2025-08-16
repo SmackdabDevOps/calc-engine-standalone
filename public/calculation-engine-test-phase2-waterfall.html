@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pure Calculation Engine Test - Phase 2: Waterfall Visualization</title>
+    
+    <!-- CodeMirror for JSON editing -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.11/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.11/theme/monokai.min.css">
+    
+    <!-- Chart.js for Waterfall visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e1e2e 0%, #151521 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+        }
+        
+        .phase-indicator {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid #667eea;
+            border-radius: 10px;
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .panel {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .panel h2 {
+            margin-bottom: 15px;
+            color: #fff;
+            font-size: 1.5em;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            background: transparent;
+            color: #888;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+        }
+        
+        .tab:hover {
+            color: #fff;
+        }
+        
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .CodeMirror {
+            height: 400px;
+            font-size: 14px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px 5px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .quick-scenario-btn {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            font-size: 14px;
+            margin: 5px;
+        }
+        
+        .quick-scenario-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        #resultOutput {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 500px;
+            overflow-y: auto;
+            font-size: 14px;
+        }
+        
+        #waterfallChart {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        .waterfall-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        
+        .stat-label {
+            color: #888;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            color: #fff;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .success {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4caf50;
+            color: #4caf50;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .error {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid #f44336;
+            color: #f44336;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .performance-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .performance-time {
+            color: #4caf50;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pure Calculation Engine Test Interface</h1>
+        <p class="subtitle">3-Tier Architecture: Pre-Processor → Pure Engine → Post-Processor</p>
+        
+        <div class="phase-indicator">
+            📊 PHASE 2: Waterfall Breakdown Visualization - Visual chart showing calculation buildup
+        </div>
+        
+        <div class="main-grid">
+            <!-- Input Panel -->
+            <div class="panel">
+                <h2>Input Configuration</h2>
+                
+                <!-- Quick Scenarios -->
+                <div style="margin-bottom: 15px;">
+                    <h3 style="margin-bottom: 10px; color: #667eea;">Quick Scenarios</h3>
+                    <button class="quick-scenario-btn" onclick="loadScenario('simple')">Simple Order</button>
+                    <button class="quick-scenario-btn" onclick="loadScenario('discount')">10% Discount</button>
+                    <button class="quick-scenario-btn" onclick="loadScenario('tax')">With Tax</button>
+                    <button class="quick-scenario-btn" onclick="loadScenario('complex')">Complex</button>
+                    <button class="quick-scenario-btn" onclick="loadScenario('margin')">Margin Test</button>
+                </div>
+                
+                <!-- JSON Editor -->
+                <div style="margin-bottom: 15px;">
+                    <textarea id="inputJson"></textarea>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div style="text-align: center;">
+                    <button onclick="runCalculation()">🚀 Run Calculation</button>
+                    <button onclick="clearInput()">🗑️ Clear</button>
+                    <button onclick="formatJson()">📐 Format JSON</button>
+                </div>
+            </div>
+            
+            <!-- Output Panel with Tabs -->
+            <div class="panel">
+                <h2>Calculation Result</h2>
+                
+                <!-- Tabs -->
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('json')">JSON Result</button>
+                    <button class="tab" onclick="switchTab('waterfall')">📊 Waterfall Chart</button>
+                    <button class="tab" onclick="switchTab('stats')">📈 Statistics</button>
+                </div>
+                
+                <!-- Tab Contents -->
+                <div id="jsonTab" class="tab-content active">
+                    <div id="resultOutput">Results will appear here...</div>
+                    <div class="performance-info">
+                        <span>Calculation Time:</span>
+                        <span class="performance-time" id="calcTime">-</span>
+                    </div>
+                </div>
+                
+                <div id="waterfallTab" class="tab-content">
+                    <div style="height: 400px; position: relative;">
+                        <canvas id="waterfallChart"></canvas>
+                    </div>
+                    <div class="waterfall-stats">
+                        <div class="stat-card">
+                            <div class="stat-label">Base Subtotal</div>
+                            <div class="stat-value" id="baseSubtotal">$0.00</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Total Adjustments</div>
+                            <div class="stat-value" id="totalAdjustments">$0.00</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Tax Amount</div>
+                            <div class="stat-value" id="taxAmount">$0.00</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Final Total</div>
+                            <div class="stat-value" id="finalTotal">$0.00</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="statsTab" class="tab-content">
+                    <div class="waterfall-stats">
+                        <div class="stat-card">
+                            <div class="stat-label">Line Items</div>
+                            <div class="stat-value" id="lineItemCount">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Modifiers</div>
+                            <div class="stat-value" id="modifierCount">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Checksum</div>
+                            <div class="stat-value" id="checksumShort" style="font-size: 12px;">-</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Engine Version</div>
+                            <div class="stat-value" id="engineVersion">3.0.0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- CodeMirror Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.11/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.11/mode/javascript/javascript.min.js"></script>
+    
+    <script>
+        let inputEditor;
+        let waterfallChart = null;
+        let lastResult = null;
+        
+        // Test scenarios
+        const scenarios = {
+            simple: {
+                name: "Simple Order",
+                data: {
+                    proposalId: "test-001",
+                    lineItems: [
+                        {
+                            id: "item-1",
+                            unitPrice: "100.00",
+                            quantity: 2,
+                            taxSetting: "TAXABLE"
+                        },
+                        {
+                            id: "item-2",
+                            unitPrice: "50.00",
+                            quantity: 1,
+                            taxSetting: "TAXABLE"
+                        }
+                    ],
+                    modifiers: [],
+                    dependencies: [],
+                    config: {
+                        schemaVersion: "1.0",
+                        tax_rate: "0.08",
+                        tax_mode: "RETAIL"
+                    }
+                }
+            },
+            discount: {
+                name: "10% Discount",
+                data: {
+                    proposalId: "test-002",
+                    lineItems: [
+                        {
+                            id: "item-1",
+                            unitPrice: "100.00",
+                            quantity: 2,
+                            taxSetting: "TAXABLE"
+                        }
+                    ],
+                    modifiers: [
+                        {
+                            id: "discount-1",
+                            modifier_type: "percentage",
+                            value: "-10",
+                            application_type: "pre_tax",
+                            category: "discount"
+                        }
+                    ],
+                    dependencies: [],
+                    config: {
+                        schemaVersion: "1.0",
+                        tax_rate: "0.08",
+                        tax_mode: "RETAIL"
+                    }
+                }
+            },
+            tax: {
+                name: "With Tax",
+                data: {
+                    proposalId: "test-003",
+                    lineItems: [
+                        {
+                            id: "item-1",
+                            unitPrice: "100.00",
+                            quantity: 1,
+                            taxSetting: "TAXABLE"
+                        },
+                        {
+                            id: "item-2",
+                            unitPrice: "50.00",
+                            quantity: 1,
+                            taxSetting: "NON_TAXABLE"
+                        }
+                    ],
+                    modifiers: [],
+                    dependencies: [],
+                    config: {
+                        schemaVersion: "1.0",
+                        tax_rate: "0.0875",
+                        tax_mode: "RETAIL"
+                    }
+                }
+            },
+            complex: {
+                name: "Complex Scenario",
+                data: {
+                    proposalId: "test-004",
+                    lineItems: [
+                        {
+                            id: "item-1",
+                            unitPrice: "100.00",
+                            quantity: 3,
+                            taxSetting: "TAXABLE"
+                        },
+                        {
+                            id: "item-2",
+                            unitPrice: "75.50",
+                            quantity: 2,
+                            taxSetting: "TAXABLE"
+                        }
+                    ],
+                    modifiers: [
+                        {
+                            id: "discount-1",
+                            modifier_type: "percentage",
+                            value: "-15",
+                            application_type: "pre_tax",
+                            category: "discount",
+                            chain_priority: 1
+                        },
+                        {
+                            id: "fee-1",
+                            modifier_type: "fixed",
+                            value: "25.00",
+                            application_type: "pre_tax",
+                            category: "fee",
+                            chain_priority: 2
+                        },
+                        {
+                            id: "discount-2",
+                            modifier_type: "percentage",
+                            value: "-5",
+                            application_type: "post_tax",
+                            category: "discount",
+                            chain_priority: 3
+                        }
+                    ],
+                    dependencies: [],
+                    config: {
+                        schemaVersion: "1.0",
+                        tax_rate: "0.09",
+                        tax_mode: "RETAIL"
+                    }
+                }
+            },
+            margin: {
+                name: "Margin Test",
+                data: {
+                    proposalId: "test-005",
+                    lineItems: [
+                        {
+                            id: "item-1",
+                            unitPrice: "100.00",
+                            quantity: 1,
+                            cost: "60.00",
+                            taxSetting: "TAXABLE"
+                        }
+                    ],
+                    modifiers: [
+                        {
+                            id: "margin-1",
+                            modifier_type: "margin",
+                            value: "30",
+                            application_type: "pre_tax",
+                            category: "margin"
+                        }
+                    ],
+                    dependencies: [],
+                    config: {
+                        schemaVersion: "1.0",
+                        tax_rate: "0.08",
+                        tax_mode: "RETAIL"
+                    }
+                }
+            }
+        };
+        
+        // Initialize CodeMirror
+        function initializeEditor() {
+            inputEditor = CodeMirror.fromTextArea(document.getElementById('inputJson'), {
+                mode: 'application/json',
+                theme: 'monokai',
+                lineNumbers: true,
+                lineWrapping: true,
+                autoCloseBrackets: true,
+                matchBrackets: true,
+                indentUnit: 2,
+                tabSize: 2
+            });
+            
+            // Load simple scenario by default
+            loadScenario('simple');
+        }
+        
+        // Load scenario
+        function loadScenario(type) {
+            const scenario = scenarios[type];
+            if (scenario) {
+                inputEditor.setValue(JSON.stringify(scenario.data, null, 2));
+                showMessage(`Loaded scenario: ${scenario.name}`, 'success');
+            }
+        }
+        
+        // Switch tabs
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`${tabName}Tab`).classList.add('active');
+            
+            // If switching to waterfall and we have data, update the chart
+            if (tabName === 'waterfall' && lastResult) {
+                updateWaterfallChart(lastResult);
+            }
+        }
+        
+        // Run calculation
+        async function runCalculation() {
+            try {
+                const input = JSON.parse(inputEditor.getValue());
+                const startTime = performance.now();
+                
+                const response = await fetch('/api/engine/calculate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(input)
+                });
+                
+                const endTime = performance.now();
+                const result = await response.json();
+                
+                if (response.ok) {
+                    lastResult = result;
+                    displayResult(result);
+                    updateWaterfallChart(result);
+                    updateStats(result, input);
+                    
+                    document.getElementById('calcTime').textContent = `${(endTime - startTime).toFixed(2)}ms`;
+                    showMessage('Calculation completed successfully!', 'success');
+                } else {
+                    displayError(result);
+                    showMessage('Calculation failed!', 'error');
+                }
+            } catch (error) {
+                displayError({ error: error.message });
+                showMessage('Failed to run calculation', 'error');
+            }
+        }
+        
+        // Display result
+        function displayResult(result) {
+            document.getElementById('resultOutput').textContent = JSON.stringify(result, null, 2);
+        }
+        
+        // Display error
+        function displayError(error) {
+            document.getElementById('resultOutput').innerHTML = `<div class="error">${JSON.stringify(error, null, 2)}</div>`;
+        }
+        
+        // Update waterfall chart
+        function updateWaterfallChart(result) {
+            const ctx = document.getElementById('waterfallChart').getContext('2d');
+            
+            // Prepare data for waterfall
+            const subtotal = parseFloat(result.subtotal || 0);
+            const modifierTotal = parseFloat(result.modifierTotal || 0);
+            const retailTax = parseFloat(result.retailTax || 0);
+            const finalTotal = parseFloat(result.customerGrandTotal || 0);
+            
+            // Build waterfall data - showing the flow from base to final
+            const labels = [];
+            const values = [];  // Actual values for display
+            const colors = [];
+            const borderColors = [];
+            
+            // Start with base subtotal
+            labels.push('Base Subtotal');
+            values.push(subtotal);
+            colors.push('rgba(102, 126, 234, 0.8)');
+            borderColors.push('rgba(102, 126, 234, 1)');
+            
+            // Add modifiers/adjustments as changes
+            if (result.adjustments && result.adjustments.length > 0) {
+                result.adjustments.forEach((adj, index) => {
+                    const amount = parseFloat(adj.amount || 0);
+                    labels.push(`Modifier ${index + 1}`);
+                    values.push(amount);  // Store the change amount
+                    colors.push(amount >= 0 ? 'rgba(76, 175, 80, 0.8)' : 'rgba(244, 67, 54, 0.8)');
+                    borderColors.push(amount >= 0 ? 'rgba(76, 175, 80, 1)' : 'rgba(244, 67, 54, 1)');
+                });
+            } else if (modifierTotal !== 0) {
+                labels.push('Modifiers Total');
+                values.push(modifierTotal);
+                colors.push(modifierTotal >= 0 ? 'rgba(76, 175, 80, 0.8)' : 'rgba(244, 67, 54, 0.8)');
+                borderColors.push(modifierTotal >= 0 ? 'rgba(76, 175, 80, 1)' : 'rgba(244, 67, 54, 1)');
+            }
+            
+            // Add tax as a change
+            if (retailTax > 0) {
+                labels.push('Tax');
+                values.push(retailTax);
+                colors.push('rgba(255, 193, 7, 0.8)');
+                borderColors.push('rgba(255, 193, 7, 1)');
+            }
+            
+            // Add final total as the ending bar
+            labels.push('Final Total');
+            values.push(finalTotal);
+            colors.push('rgba(156, 39, 176, 0.8)');
+            borderColors.push('rgba(156, 39, 176, 1)');
+            
+            // Calculate the floating bars for waterfall effect
+            const floatingBars = [];
+            let runningTotal = 0;
+            
+            for (let i = 0; i < values.length; i++) {
+                if (i === 0) {
+                    // First bar starts from 0
+                    floatingBars.push([0, values[i]]);
+                    runningTotal = values[i];
+                } else if (i === values.length - 1) {
+                    // Final total bar shows from 0 to final value
+                    floatingBars.push([0, finalTotal]);
+                } else {
+                    // Middle bars show the change
+                    const startPoint = runningTotal;
+                    const endPoint = runningTotal + values[i];
+                    // For floating bars, we need [min, max]
+                    floatingBars.push([Math.min(startPoint, endPoint), Math.max(startPoint, endPoint)]);
+                    runningTotal = endPoint;
+                }
+            }
+            
+            // Destroy existing chart if it exists
+            if (waterfallChart) {
+                waterfallChart.destroy();
+            }
+            
+            // Create new chart
+            waterfallChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Amount',
+                        data: floatingBars,
+                        backgroundColor: colors,
+                        borderColor: borderColors,
+                        borderWidth: 2,
+                        barPercentage: 0.8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const index = context.dataIndex;
+                                    const value = values[index];
+                                    if (index === 0 || index === values.length - 1) {
+                                        return `Total: $${value.toFixed(2)}`;
+                                    } else {
+                                        const sign = value >= 0 ? '+' : '';
+                                        return `Change: ${sign}$${value.toFixed(2)}`;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#888',
+                                callback: function(value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#888'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Update stats cards
+            document.getElementById('baseSubtotal').textContent = `$${subtotal.toFixed(2)}`;
+            document.getElementById('totalAdjustments').textContent = `$${modifierTotal.toFixed(2)}`;
+            document.getElementById('taxAmount').textContent = `$${retailTax.toFixed(2)}`;
+            document.getElementById('finalTotal').textContent = `$${finalTotal.toFixed(2)}`;
+        }
+        
+        // Update statistics
+        function updateStats(result, input) {
+            document.getElementById('lineItemCount').textContent = input.lineItems ? input.lineItems.length : 0;
+            document.getElementById('modifierCount').textContent = input.modifiers ? input.modifiers.length : 0;
+            document.getElementById('checksumShort').textContent = result.checksum ? result.checksum.substring(0, 8) + '...' : '-';
+            document.getElementById('engineVersion').textContent = '3.0.0';
+        }
+        
+        // Clear input
+        function clearInput() {
+            inputEditor.setValue('');
+            document.getElementById('resultOutput').textContent = 'Results will appear here...';
+            if (waterfallChart) {
+                waterfallChart.destroy();
+                waterfallChart = null;
+            }
+        }
+        
+        // Format JSON
+        function formatJson() {
+            try {
+                const json = JSON.parse(inputEditor.getValue());
+                inputEditor.setValue(JSON.stringify(json, null, 2));
+                showMessage('JSON formatted successfully', 'success');
+            } catch (error) {
+                showMessage('Invalid JSON: ' + error.message, 'error');
+            }
+        }
+        
+        // Show message
+        function showMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type;
+            messageDiv.textContent = message;
+            messageDiv.style.position = 'fixed';
+            messageDiv.style.top = '20px';
+            messageDiv.style.right = '20px';
+            messageDiv.style.zIndex = '10000';
+            
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
+        
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            initializeEditor();
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    runCalculation();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

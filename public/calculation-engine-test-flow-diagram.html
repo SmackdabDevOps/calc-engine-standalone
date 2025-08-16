@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculation Engine - Flow Diagram Visualization</title>
+    
+    <!-- CodeMirror for JSON editing -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.11/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.11/theme/monokai.min.css">
+    
+    <!-- Mermaid.js for flow diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e1e2e 0%, #151521 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .panel {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .panel h2 {
+            margin-bottom: 15px;
+            color: #fff;
+            font-size: 1.3em;
+        }
+        
+        .CodeMirror {
+            height: 500px;
+            font-size: 14px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px 5px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .quick-scenario-btn {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            font-size: 14px;
+            margin: 5px;
+        }
+        
+        .quick-scenario-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        #flowDiagram {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 600px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: auto;
+        }
+        
+        .flow-diagram {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .result-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        
+        .stat-label {
+            color: #888;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            color: #fff;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .control-btn {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            font-size: 14px;
+            border-radius: 6px;
+        }
+        
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .export-btn {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+        }
+        
+        .node-detail {
+            position: absolute;
+            background: rgba(30, 30, 46, 0.95);
+            border: 1px solid rgba(102, 126, 234, 0.5);
+            border-radius: 8px;
+            padding: 15px;
+            min-width: 200px;
+            z-index: 1000;
+            display: none;
+            backdrop-filter: blur(10px);
+        }
+        
+        .node-detail h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .node-detail p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        
+        /* Custom Mermaid theme */
+        .mermaid {
+            background: transparent !important;
+        }
+        
+        /* Override Mermaid default theme */
+        g.node rect {
+            fill: rgba(102, 126, 234, 0.2) !important;
+            stroke: #667eea !important;
+        }
+        
+        g.node text {
+            fill: #fff !important;
+        }
+        
+        .edgePath path {
+            stroke: #667eea !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Calculation Flow Diagram</h1>
+        <p class="subtitle">Visual Step-by-Step Calculation Flow with Mermaid.js</p>
+        
+        <div class="main-grid">
+            <!-- Input Panel -->
+            <div class="panel">
+                <h2>Input Configuration</h2>
+                
+                <div style="margin-bottom: 15px;">
+                    <h3 style="color: #667eea; font-size: 14px; margin-bottom: 10px;">Quick Scenarios</h3>
+                    <button class="quick-scenario-btn" onclick="loadScenario('simple')">Simple</button>
+                    <button class="quick-scenario-btn" onclick="loadScenario('discount')">Discount</button>
+                    <button class="quick-scenario-btn" onclick="loadScenario('complex')">Complex</button>
+                    <button class="quick-scenario-btn" onclick="loadScenario('multiItem')">Multi-Item</button>
+                </div>
+                
+                <textarea id="inputJson" style="display: none;"></textarea>
+                
+                <!-- Action Buttons -->
+                <div style="text-align: center; margin-top: 15px;">
+                    <button onclick="runCalculation()">🚀 Calculate & Generate Flow</button>
+                </div>
+                
+                <!-- Summary -->
+                <div class="result-summary" style="margin-top: 20px;">
+                    <div class="stat-card">
+                        <div class="stat-label">Subtotal</div>
+                        <div class="stat-value" id="subtotal">$0.00</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Modifiers</div>
+                        <div class="stat-value" id="modifiers">$0.00</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Tax</div>
+                        <div class="stat-value" id="tax">$0.00</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Total</div>
+                        <div class="stat-value" id="total" style="color: #764ba2;">$0.00</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Flow Diagram Panel -->
+            <div class="panel">
+                <h2>Calculation Flow Visualization</h2>
+                
+                <div class="controls">
+                    <button class="control-btn" onclick="toggleNodeDetails()">🔍 Toggle Details</button>
+                    <button class="control-btn" onclick="changeFlowDirection()">↔️ Change Direction</button>
+                    <button class="control-btn export-btn" onclick="exportDiagram()">📸 Export Image</button>
+                    <button class="control-btn" onclick="downloadSVG()">⬇️ Download SVG</button>
+                </div>
+                
+                <div id="flowDiagram" class="flow-diagram">
+                    <div class="mermaid" id="mermaidDiagram">
+                        graph TD
+                            Start[Start Calculation] --> Input[Input Data]
+                            Input --> LineItems[Process Line Items]
+                            LineItems --> Base[Calculate Base Total]
+                            Base --> Ready[Ready for Flow]
+                            
+                            style Start fill:#667eea,stroke:#fff,stroke-width:2px
+                            style Ready fill:#764ba2,stroke:#fff,stroke-width:2px
+                    </div>
+                </div>
+                
+                <div id="nodeDetail" class="node-detail">
+                    <h3 id="nodeTitle">Node Details</h3>
+                    <p id="nodeValue">Value: $0.00</p>
+                    <p id="nodeDescription">Description</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- CodeMirror JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.11/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.11/mode/javascript/javascript.min.js"></script>
+    
+    <script>
+        // Initialize Mermaid
+        mermaid.initialize({ 
+            theme: 'dark',
+            themeVariables: {
+                primaryColor: '#667eea',
+                primaryTextColor: '#fff',
+                primaryBorderColor: '#764ba2',
+                lineColor: '#667eea',
+                secondaryColor: '#764ba2',
+                tertiaryColor: '#4caf50',
+                background: 'rgba(30, 30, 46, 0.8)',
+                mainBkg: 'rgba(102, 126, 234, 0.2)',
+                secondBkg: 'rgba(118, 75, 162, 0.2)',
+                tertiaryBkg: 'rgba(76, 175, 80, 0.2)',
+                textColor: '#fff',
+                edgeLabelBackground: 'rgba(30, 30, 46, 0.9)'
+            }
+        });
+        
+        // Global variables
+        let inputEditor;
+        let lastResult = null;
+        let flowDirection = 'TD'; // Top-Down by default
+        let showDetails = false;
+        
+        // Test scenarios
+        const scenarios = {
+            simple: {
+                name: "Simple Order",
+                data: {
+                    proposalId: "flow-test-001",
+                    lineItems: [
+                        {
+                            id: "item-1",
+                            unitPrice: "100.00",
+                            quantity: 1,
+                            taxSetting: "TAXABLE"
+                        }
+                    ],
+                    modifiers: [],
+                    dependencies: [],
+                    config: {
+                        schemaVersion: "1.0",
+                        tax_rate: "0.10",
+                        tax_mode: "RETAIL"
+                    }
+                }
+            },
+            discount: {
+                name: "With Discount",
+                data: {
+                    proposalId: "flow-test-002",
+                    lineItems: [
+                        {
+                            id: "item-1",
+                            unitPrice: "200.00",
+                            quantity: 2,
+                            taxSetting: "TAXABLE"
+                        }
+                    ],
+                    modifiers: [
+                        {
+                            id: "discount-1",
+                            modifier_type: "percentage",
+                            value: "-15",
+                            application_type: "pre_tax",
+                            chain_priority: 1
+                        }
+                    ],
+                    dependencies: [],
+                    config: {
+                        schemaVersion: "1.0",
+                        tax_rate: "0.08",
+                        tax_mode: "RETAIL"
+                    }
+                }
+            },
+            complex: {
+                name: "Complex Flow",
+                data: {
+                    proposalId: "flow-test-003",
+                    lineItems: [
+                        {
+                            id: "item-1",
+                            unitPrice: "150.00",
+                            quantity: 2,
+                            taxSetting: "TAXABLE"
+                        }
+                    ],
+                    modifiers: [
+                        {
+                            id: "discount-1",
+                            modifier_type: "percentage",
+                            value: "-10",
+                            application_type: "pre_tax",
+                            chain_priority: 1
+                        },
+                        {
+                            id: "fee-1",
+                            modifier_type: "fixed",
+                            value: "25.00",
+                            application_type: "pre_tax",
+                            chain_priority: 2
+                        },
+                        {
+                            id: "discount-2",
+                            modifier_type: "percentage",
+                            value: "-5",
+                            application_type: "post_tax",
+                            chain_priority: 3
+                        }
+                    ],
+                    dependencies: [
+                        {
+                            modifier_id: "fee-1",
+                            depends_on: "discount-1"
+                        }
+                    ],
+                    config: {
+                        schemaVersion: "1.0",
+                        tax_rate: "0.09",
+                        tax_mode: "RETAIL"
+                    }
+                }
+            },
+            multiItem: {
+                name: "Multiple Items",
+                data: {
+                    proposalId: "flow-test-004",
+                    lineItems: [
+                        {
+                            id: "item-1",
+                            unitPrice: "100.00",
+                            quantity: 2,
+                            taxSetting: "TAXABLE"
+                        },
+                        {
+                            id: "item-2",
+                            unitPrice: "50.00",
+                            quantity: 3,
+                            taxSetting: "TAXABLE"
+                        },
+                        {
+                            id: "item-3",
+                            unitPrice: "75.00",
+                            quantity: 1,
+                            taxSetting: "EXEMPT"
+                        }
+                    ],
+                    modifiers: [
+                        {
+                            id: "bulk-discount",
+                            modifier_type: "percentage",
+                            value: "-12",
+                            application_type: "pre_tax",
+                            chain_priority: 1
+                        }
+                    ],
+                    dependencies: [],
+                    config: {
+                        schemaVersion: "1.0",
+                        tax_rate: "0.0875",
+                        tax_mode: "RETAIL"
+                    }
+                }
+            }
+        };
+        
+        // Initialize CodeMirror
+        function initializeEditor() {
+            inputEditor = CodeMirror.fromTextArea(document.getElementById('inputJson'), {
+                mode: 'application/json',
+                theme: 'monokai',
+                lineNumbers: true,
+                lineWrapping: true,
+                autoCloseBrackets: true,
+                matchBrackets: true,
+                indentUnit: 2,
+                tabSize: 2
+            });
+            
+            // Load complex scenario by default
+            loadScenario('complex');
+        }
+        
+        // Load scenario
+        function loadScenario(type) {
+            const scenario = scenarios[type];
+            if (scenario) {
+                inputEditor.setValue(JSON.stringify(scenario.data, null, 2));
+                console.log(`Loaded scenario: ${scenario.name}`);
+            }
+        }
+        
+        // Run calculation and update flow
+        async function runCalculation() {
+            try {
+                const input = JSON.parse(inputEditor.getValue());
+                
+                const response = await fetch('/api/engine/calculate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(input)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    lastResult = result;
+                    processResult(result, input);
+                    updateFlowDiagram(result, input);
+                    updateSummary(result);
+                } else {
+                    console.error('Calculation failed:', result);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        // Process calculation result (for expandable nodes)
+        function processResult(result, input) {
+            // Store the result for node expansion
+            window.calculationResult = result;
+            window.calculationInput = input;
+        }
+        
+        // Update flow diagram with calculation data
+        function updateFlowDiagram(result, input) {
+            const flowDef = generateFlow(result, input);
+            renderFlow(flowDef);
+        }
+        
+        // Generate Mermaid flow definition
+        function generateFlow(result, input) {
+            let flow = `graph ${flowDirection}\n`;
+            
+            // Start node
+            flow += `    Start[Start Calculation]:::startClass\n`;
+            
+            // Input validation node
+            flow += `    Start --> Validate[Validate Input]\n`;
+            
+            // Line items processing
+            const lineItemCount = input.lineItems.length;
+            flow += `    Validate --> LineItems[Process ${lineItemCount} Line Items]\n`;
+            
+            // Individual line items
+            input.lineItems.forEach((item, index) => {
+                const itemTotal = parseFloat(item.unitPrice) * item.quantity;
+                flow += `    LineItems --> Item${index}["${item.id}<br/>$${itemTotal.toFixed(2)}"]\n`;
+            });
+            
+            // Base subtotal
+            const subtotal = parseFloat(result.subtotal || 0);
+            flow += `    Item${lineItemCount - 1} --> Base["Base Subtotal<br/>$${subtotal.toFixed(2)}"]\n`;
+            
+            // Modifiers
+            if (result.adjustments && result.adjustments.length > 0) {
+                let prevNode = 'Base';
+                result.adjustments.forEach((adj, index) => {
+                    const amount = parseFloat(adj.amount || 0);
+                    const nodeId = `Mod${index}`;
+                    const label = amount < 0 ? 'Discount' : 'Fee';
+                    const colorClass = amount < 0 ? ':::discountClass' : ':::feeClass';
+                    
+                    flow += `    ${prevNode} --> ${nodeId}["${label} ${index + 1}<br/>${amount >= 0 ? '+' : ''}$${amount.toFixed(2)}"]${colorClass}\n`;
+                    prevNode = nodeId;
+                });
+                
+                // Tax calculation
+                if (parseFloat(result.retailTax) > 0) {
+                    flow += `    ${prevNode} --> Tax["Calculate Tax<br/>+$${parseFloat(result.retailTax).toFixed(2)}"]:::taxClass\n`;
+                    flow += `    Tax --> Final["Final Total<br/>$${parseFloat(result.customerGrandTotal).toFixed(2)}"]:::finalClass\n`;
+                } else {
+                    flow += `    ${prevNode} --> Final["Final Total<br/>$${parseFloat(result.customerGrandTotal).toFixed(2)}"]:::finalClass\n`;
+                }
+            } else {
+                // No modifiers, straight to tax
+                if (parseFloat(result.retailTax) > 0) {
+                    flow += `    Base --> Tax["Calculate Tax<br/>+$${parseFloat(result.retailTax).toFixed(2)}"]:::taxClass\n`;
+                    flow += `    Tax --> Final["Final Total<br/>$${parseFloat(result.customerGrandTotal).toFixed(2)}"]:::finalClass\n`;
+                } else {
+                    flow += `    Base --> Final["Final Total<br/>$${parseFloat(result.customerGrandTotal).toFixed(2)}"]:::finalClass\n`;
+                }
+            }
+            
+            // Add styles
+            flow += `\n    classDef startClass fill:#667eea,stroke:#fff,stroke-width:2px,color:#fff\n`;
+            flow += `    classDef finalClass fill:#764ba2,stroke:#fff,stroke-width:2px,color:#fff\n`;
+            flow += `    classDef discountClass fill:#f44336,stroke:#fff,stroke-width:2px,color:#fff\n`;
+            flow += `    classDef feeClass fill:#4caf50,stroke:#fff,stroke-width:2px,color:#fff\n`;
+            flow += `    classDef taxClass fill:#ffc107,stroke:#fff,stroke-width:2px,color:#000\n`;
+            
+            return flow;
+        }
+        
+        // Render the flow diagram
+        function renderFlow(flowDefinition) {
+            const element = document.getElementById('mermaidDiagram');
+            element.textContent = flowDefinition;
+            element.removeAttribute('data-processed');
+            mermaid.init(undefined, element);
+            
+            // Add click handlers for expandable nodes
+            setTimeout(() => {
+                addNodeClickHandlers();
+            }, 500);
+        }
+        
+        // Add click handlers for node expansion
+        function addNodeClickHandlers() {
+            const nodes = document.querySelectorAll('.node');
+            nodes.forEach(node => {
+                node.style.cursor = 'pointer';
+                node.addEventListener('click', handleNodeClick);
+            });
+        }
+        
+        // Handle node click for expansion
+        function handleNodeClick(event) {
+            if (!showDetails) return;
+            
+            const nodeElement = event.currentTarget;
+            const nodeText = nodeElement.textContent;
+            const detailDiv = document.getElementById('nodeDetail');
+            const rect = nodeElement.getBoundingClientRect();
+            
+            // Update detail content
+            document.getElementById('nodeTitle').textContent = nodeText.split('\n')[0];
+            document.getElementById('nodeValue').textContent = nodeText.includes('$') ? nodeText.match(/\$[\d,]+\.?\d*/)[0] : 'N/A';
+            document.getElementById('nodeDescription').textContent = getNodeDescription(nodeText);
+            
+            // Position and show detail
+            detailDiv.style.left = `${rect.right + 10}px`;
+            detailDiv.style.top = `${rect.top}px`;
+            detailDiv.style.display = 'block';
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                detailDiv.style.display = 'none';
+            }, 3000);
+        }
+        
+        // Get node description
+        function getNodeDescription(nodeText) {
+            if (nodeText.includes('Line Items')) return 'Processing all line items in the order';
+            if (nodeText.includes('Base Subtotal')) return 'Sum of all line item totals';
+            if (nodeText.includes('Discount')) return 'Percentage or fixed discount applied';
+            if (nodeText.includes('Fee')) return 'Additional fee or charge';
+            if (nodeText.includes('Tax')) return 'Sales tax calculation';
+            if (nodeText.includes('Final Total')) return 'Customer grand total';
+            return 'Calculation step';
+        }
+        
+        // Toggle node details
+        function toggleNodeDetails() {
+            showDetails = !showDetails;
+            if (!showDetails) {
+                document.getElementById('nodeDetail').style.display = 'none';
+            }
+            console.log('Node details:', showDetails ? 'enabled' : 'disabled');
+        }
+        
+        // Change flow direction
+        function changeFlowDirection() {
+            const directions = ['TD', 'LR', 'BT', 'RL'];
+            const currentIndex = directions.indexOf(flowDirection);
+            flowDirection = directions[(currentIndex + 1) % directions.length];
+            
+            if (lastResult && window.calculationInput) {
+                updateFlowDiagram(lastResult, window.calculationInput);
+            }
+        }
+        
+        // Export diagram as image
+        function exportDiagram() {
+            const svg = document.querySelector('#flowDiagram svg');
+            if (!svg) {
+                alert('No diagram to export');
+                return;
+            }
+            
+            // Convert SVG to blob
+            const svgData = new XMLSerializer().serializeToString(svg);
+            const blob = new Blob([svgData], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            
+            // Create image and download
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                
+                canvas.toBlob(function(blob) {
+                    const link = document.createElement('a');
+                    link.download = 'calculation-flow-diagram.png';
+                    link.href = URL.createObjectURL(blob);
+                    link.click();
+                });
+            };
+            img.src = url;
+        }
+        
+        // Download as SVG
+        function downloadSVG() {
+            const svg = document.querySelector('#flowDiagram svg');
+            if (!svg) {
+                alert('No diagram to download');
+                return;
+            }
+            
+            const svgData = new XMLSerializer().serializeToString(svg);
+            const blob = new Blob([svgData], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.download = 'calculation-flow-diagram.svg';
+            link.href = url;
+            link.click();
+        }
+        
+        // Update summary
+        function updateSummary(result) {
+            document.getElementById('subtotal').textContent = '$' + parseFloat(result.subtotal || 0).toFixed(2);
+            document.getElementById('modifiers').textContent = '$' + parseFloat(result.modifierTotal || 0).toFixed(2);
+            document.getElementById('tax').textContent = '$' + parseFloat(result.retailTax || 0).toFixed(2);
+            document.getElementById('total').textContent = '$' + parseFloat(result.customerGrandTotal || 0).toFixed(2);
+        }
+        
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            initializeEditor();
+            
+            // Auto-run calculation after a delay
+            setTimeout(() => {
+                runCalculation();
+            }, 500);
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                runCalculation();
+            }
+        });
+    </script>
+</body>
+</html>

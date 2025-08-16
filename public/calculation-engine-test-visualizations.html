@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculation Engine - Multiple Visualization Types</title>
+    
+    <!-- CodeMirror for JSON editing -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.11/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.11/theme/monokai.min.css">
+    
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- D3.js for Sankey diagram -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/d3/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e1e2e 0%, #151521 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .panel {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .panel h2 {
+            margin-bottom: 15px;
+            color: #fff;
+            font-size: 1.3em;
+        }
+        
+        .CodeMirror {
+            height: 400px;
+            font-size: 14px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px 5px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .quick-scenario-btn {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            font-size: 14px;
+            margin: 5px;
+        }
+        
+        .quick-scenario-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .visualizations-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        
+        .viz-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .viz-card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        .chart-container {
+            height: 300px;
+            position: relative;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 10px;
+        }
+        
+        #sankeyDiagram {
+            width: 100%;
+            height: 300px;
+        }
+        
+        .result-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        
+        .stat-label {
+            color: #888;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            color: #fff;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .error {
+            color: #ff5252;
+            padding: 10px;
+            background: rgba(255, 82, 82, 0.1);
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .success {
+            color: #4caf50;
+            padding: 10px;
+            background: rgba(76, 175, 80, 0.1);
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Calculation Engine Visualizations</h1>
+        <p class="subtitle">Four Different Ways to Visualize Calculation Flow</p>
+        
+        <div class="main-grid">
+            <!-- Input Panel -->
+            <div class="panel">
+                <h2>Input Configuration</h2>
+                
+                <div style="margin-bottom: 15px;">
+                    <h3 style="color: #667eea; font-size: 14px; margin-bottom: 10px;">Quick Scenarios</h3>
+                    <button class="quick-scenario-btn" onclick="loadScenario('simple')">Simple Order</button>
+                    <button class="quick-scenario-btn" onclick="loadScenario('discount')">10% Discount</button>
+                    <button class="quick-scenario-btn" onclick="loadScenario('complex')">Complex</button>
+                </div>
+                
+                <textarea id="inputJson" style="display: none;"></textarea>
+                
+                <!-- Action Buttons -->
+                <div style="text-align: center; margin-top: 15px;">
+                    <button onclick="runCalculation()">🚀 Calculate & Visualize</button>
+                </div>
+            </div>
+            
+            <!-- Result Summary -->
+            <div class="panel">
+                <h2>Calculation Result</h2>
+                <div class="result-summary">
+                    <div class="stat-card">
+                        <div class="stat-label">Base Subtotal</div>
+                        <div class="stat-value" id="baseSubtotal">$0.00</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Modifiers</div>
+                        <div class="stat-value" id="modifiersTotal">$0.00</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Tax</div>
+                        <div class="stat-value" id="taxAmount">$0.00</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Final Total</div>
+                        <div class="stat-value" id="finalTotal" style="color: #764ba2;">$0.00</div>
+                    </div>
+                </div>
+                <div id="messageArea"></div>
+            </div>
+        </div>
+        
+        <!-- Visualizations Grid -->
+        <div class="visualizations-grid">
+            <!-- True Waterfall Chart -->
+            <div class="viz-card">
+                <h3>1. True Waterfall Chart (Cascading)</h3>
+                <div class="chart-container">
+                    <canvas id="waterfallChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Sankey Diagram -->
+            <div class="viz-card">
+                <h3>2. Sankey Flow Diagram</h3>
+                <div class="chart-container">
+                    <svg id="sankeyDiagram"></svg>
+                </div>
+            </div>
+            
+            <!-- Step Line Chart -->
+            <div class="viz-card">
+                <h3>3. Step Chart with Area</h3>
+                <div class="chart-container">
+                    <canvas id="stepChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Horizontal Stacked Bar -->
+            <div class="viz-card">
+                <h3>4. Horizontal Composition Bar</h3>
+                <div class="chart-container">
+                    <canvas id="stackedBar"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- CodeMirror JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.11/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.11/mode/javascript/javascript.min.js"></script>
+    
+    <script>
+        // Global variables
+        let inputEditor;
+        let waterfallChart, stepChart, stackedBarChart;
+        let lastResult = null;
+        
+        // Test scenarios
+        const scenarios = {
+            simple: {
+                name: "Simple Order",
+                data: {
+                    proposalId: "test-001",
+                    lineItems: [
+                        {
+                            id: "item-1",
+                            unitPrice: "100.00",
+                            quantity: 1,
+                            taxSetting: "TAXABLE"
+                        }
+                    ],
+                    modifiers: [],
+                    dependencies: [],
+                    config: {
+                        schemaVersion: "1.0",
+                        tax_rate: "0.10",
+                        tax_mode: "RETAIL"
+                    }
+                }
+            },
+            discount: {
+                name: "10% Discount",
+                data: {
+                    proposalId: "test-002",
+                    lineItems: [
+                        {
+                            id: "item-1",
+                            unitPrice: "200.00",
+                            quantity: 2,
+                            taxSetting: "TAXABLE"
+                        }
+                    ],
+                    modifiers: [
+                        {
+                            id: "discount-1",
+                            modifier_type: "percentage",
+                            value: "-10",
+                            application_type: "pre_tax",
+                            category: "discount"
+                        }
+                    ],
+                    dependencies: [],
+                    config: {
+                        schemaVersion: "1.0",
+                        tax_rate: "0.08",
+                        tax_mode: "RETAIL"
+                    }
+                }
+            },
+            complex: {
+                name: "Complex Scenario",
+                data: {
+                    proposalId: "test-004",
+                    lineItems: [
+                        {
+                            id: "item-1",
+                            unitPrice: "100.00",
+                            quantity: 3,
+                            taxSetting: "TAXABLE"
+                        },
+                        {
+                            id: "item-2",
+                            unitPrice: "75.50",
+                            quantity: 2,
+                            taxSetting: "TAXABLE"
+                        }
+                    ],
+                    modifiers: [
+                        {
+                            id: "discount-1",
+                            modifier_type: "percentage",
+                            value: "-15",
+                            application_type: "pre_tax",
+                            category: "discount",
+                            chain_priority: 1
+                        },
+                        {
+                            id: "fee-1",
+                            modifier_type: "fixed",
+                            value: "25.00",
+                            application_type: "pre_tax",
+                            category: "fee",
+                            chain_priority: 2
+                        },
+                        {
+                            id: "discount-2",
+                            modifier_type: "percentage",
+                            value: "-5",
+                            application_type: "post_tax",
+                            category: "discount",
+                            chain_priority: 3
+                        }
+                    ],
+                    dependencies: [],
+                    config: {
+                        schemaVersion: "1.0",
+                        tax_rate: "0.09",
+                        tax_mode: "RETAIL"
+                    }
+                }
+            }
+        };
+        
+        // Initialize CodeMirror
+        function initializeEditor() {
+            inputEditor = CodeMirror.fromTextArea(document.getElementById('inputJson'), {
+                mode: 'application/json',
+                theme: 'monokai',
+                lineNumbers: true,
+                lineWrapping: true,
+                autoCloseBrackets: true,
+                matchBrackets: true,
+                indentUnit: 2,
+                tabSize: 2
+            });
+            
+            // Load discount scenario by default
+            loadScenario('discount');
+        }
+        
+        // Load scenario
+        function loadScenario(type) {
+            const scenario = scenarios[type];
+            if (scenario) {
+                inputEditor.setValue(JSON.stringify(scenario.data, null, 2));
+                showMessage(`Loaded: ${scenario.name}`, 'success');
+            }
+        }
+        
+        // Run calculation
+        async function runCalculation() {
+            try {
+                const input = JSON.parse(inputEditor.getValue());
+                
+                const response = await fetch('/api/engine/calculate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(input)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    lastResult = result;
+                    updateSummary(result);
+                    updateAllVisualizations(result);
+                    showMessage('Calculation completed!', 'success');
+                } else {
+                    showMessage('Calculation failed: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showMessage('Error: ' + error.message, 'error');
+            }
+        }
+        
+        // Update summary cards
+        function updateSummary(result) {
+            document.getElementById('baseSubtotal').textContent = '$' + parseFloat(result.subtotal || 0).toFixed(2);
+            document.getElementById('modifiersTotal').textContent = '$' + parseFloat(result.modifierTotal || 0).toFixed(2);
+            document.getElementById('taxAmount').textContent = '$' + parseFloat(result.retailTax || 0).toFixed(2);
+            document.getElementById('finalTotal').textContent = '$' + parseFloat(result.customerGrandTotal || 0).toFixed(2);
+        }
+        
+        // Update all visualizations
+        function updateAllVisualizations(result) {
+            updateTrueWaterfall(result);
+            updateSankeyDiagram(result);
+            updateStepChart(result);
+            updateStackedBar(result);
+        }
+        
+        // 1. TRUE WATERFALL CHART - Shows proper cascading effect with individual modifiers
+        function updateTrueWaterfall(result) {
+            const ctx = document.getElementById('waterfallChart').getContext('2d');
+            
+            const subtotal = parseFloat(result.subtotal || 0);
+            const modifierTotal = parseFloat(result.modifierTotal || 0);
+            const retailTax = parseFloat(result.retailTax || 0);
+            const finalTotal = parseFloat(result.customerGrandTotal || 0);
+            
+            // Build data for true waterfall
+            const labels = [];
+            const data = [];
+            const colors = [];
+            const borderColors = [];
+            const actualValues = []; // Store actual signed values for tooltips
+            
+            // Calculate the progression
+            let runningTotal = 0;
+            
+            // Starting total (invisible)
+            labels.push('Start');
+            data.push([0, 0]);
+            colors.push('rgba(128, 128, 128, 0.1)');
+            borderColors.push('rgba(128, 128, 128, 0.2)');
+            actualValues.push(0);
+            
+            // Base subtotal
+            labels.push('Base Subtotal');
+            data.push([0, subtotal]);
+            colors.push('rgba(102, 126, 234, 0.8)');
+            borderColors.push('rgba(102, 126, 234, 1)');
+            actualValues.push(subtotal);
+            runningTotal = subtotal;
+            
+            // Individual modifiers from adjustments
+            if (result.adjustments && result.adjustments.length > 0) {
+                result.adjustments.forEach((adj, index) => {
+                    const amount = parseFloat(adj.amount || 0);
+                    const newTotal = runningTotal + amount;
+                    
+                    // Create label based on adjustment attributes
+                    let label = `Modifier ${index + 1}`;
+                    if (adj.attributes) {
+                        if (adj.attributes.modifier_type === 'percentage') {
+                            label = `${amount < 0 ? 'Discount' : 'Fee'} ${index + 1} (%)`;
+                        } else if (adj.attributes.modifier_type === 'fixed') {
+                            label = `${amount < 0 ? 'Discount' : 'Fee'} ${index + 1} ($)`;
+                        } else if (adj.attributes.modifier_type === 'margin') {
+                            label = `Margin ${index + 1}`;
+                        }
+                    }
+                    
+                    labels.push(label);
+                    data.push([Math.min(runningTotal, newTotal), Math.max(runningTotal, newTotal)]);
+                    actualValues.push(amount); // Store the actual signed value
+                    
+                    // Color based on positive/negative
+                    if (amount < 0) {
+                        colors.push('rgba(244, 67, 54, 0.8)'); // Red for discounts
+                        borderColors.push('rgba(244, 67, 54, 1)');
+                    } else {
+                        colors.push('rgba(76, 175, 80, 0.8)'); // Green for fees
+                        borderColors.push('rgba(76, 175, 80, 1)');
+                    }
+                    
+                    runningTotal = newTotal;
+                });
+            } else if (modifierTotal !== 0) {
+                // Fallback if no adjustments detail available
+                const newTotal = runningTotal + modifierTotal;
+                labels.push('Modifiers Total');
+                data.push([Math.min(runningTotal, newTotal), Math.max(runningTotal, newTotal)]);
+                colors.push(modifierTotal < 0 ? 'rgba(244, 67, 54, 0.8)' : 'rgba(76, 175, 80, 0.8)');
+                borderColors.push(modifierTotal < 0 ? 'rgba(244, 67, 54, 1)' : 'rgba(76, 175, 80, 1)');
+                actualValues.push(modifierTotal);
+                runningTotal = newTotal;
+            }
+            
+            // Tax
+            if (retailTax > 0) {
+                const newTotal = runningTotal + retailTax;
+                labels.push('Tax');
+                data.push([runningTotal, newTotal]);
+                colors.push('rgba(255, 193, 7, 0.8)');
+                borderColors.push('rgba(255, 193, 7, 1)');
+                actualValues.push(retailTax);
+                runningTotal = newTotal;
+            }
+            
+            // Final total
+            labels.push('Final Total');
+            data.push([0, finalTotal]);
+            colors.push('rgba(156, 39, 176, 0.8)');
+            borderColors.push('rgba(156, 39, 176, 1)');
+            actualValues.push(finalTotal);
+            
+            // Destroy existing chart
+            if (waterfallChart) {
+                waterfallChart.destroy();
+            }
+            
+            // Create new waterfall chart
+            waterfallChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Amount',
+                        data: data,
+                        backgroundColor: colors,
+                        borderColor: borderColors,
+                        borderWidth: 2,
+                        barPercentage: 0.9,
+                        categoryPercentage: 0.8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const index = context.dataIndex;
+                                    const value = actualValues[index];
+                                    
+                                    // Get the actual value for this bar
+                                    if (index === 0) {
+                                        return 'Starting point';
+                                    } else if (index === 1) {
+                                        // Base subtotal
+                                        return `Base: +$${value.toFixed(2)}`;
+                                    } else if (labels[index] === 'Final Total') {
+                                        return `Total: $${value.toFixed(2)}`;
+                                    } else {
+                                        // For all other items (modifiers, tax), show the signed value
+                                        const sign = value >= 0 ? '+' : '';
+                                        return `Change: ${sign}$${value.toFixed(2)}`;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(0);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 2. SANKEY DIAGRAM - Shows flow of value
+        function updateSankeyDiagram(result) {
+            const subtotal = parseFloat(result.subtotal || 0);
+            const modifierTotal = parseFloat(result.modifierTotal || 0);
+            const retailTax = parseFloat(result.retailTax || 0);
+            const finalTotal = parseFloat(result.customerGrandTotal || 0);
+            
+            // Clear previous diagram
+            d3.select("#sankeyDiagram").selectAll("*").remove();
+            
+            const svg = d3.select("#sankeyDiagram");
+            const width = svg.node().parentElement.clientWidth - 20;
+            const height = 280;
+            
+            svg.attr("width", width).attr("height", height);
+            
+            // Create nodes and links for Sankey
+            const nodes = [
+                {id: 0, name: "Line Items", value: subtotal},
+                {id: 1, name: "After Modifiers", value: subtotal + modifierTotal},
+                {id: 2, name: "Final Total", value: finalTotal}
+            ];
+            
+            const links = [];
+            
+            // Link from Line Items to After Modifiers
+            if (modifierTotal < 0) {
+                // Discount case
+                links.push({source: 0, target: 1, value: subtotal + modifierTotal, type: "retained"});
+                // Show the discount amount separately (going nowhere)
+            } else {
+                // Normal flow
+                links.push({source: 0, target: 1, value: subtotal, type: "flow"});
+            }
+            
+            // Link from After Modifiers to Final (includes tax)
+            links.push({source: 1, target: 2, value: subtotal + modifierTotal, type: "flow"});
+            
+            // Create gradient colors
+            const gradient = svg.append("defs")
+                .append("linearGradient")
+                .attr("id", "sankeyGradient")
+                .attr("x1", "0%")
+                .attr("x2", "100%");
+            
+            gradient.append("stop")
+                .attr("offset", "0%")
+                .style("stop-color", "#667eea");
+            
+            gradient.append("stop")
+                .attr("offset", "100%")
+                .style("stop-color", "#764ba2");
+            
+            // Draw simplified Sankey
+            const nodeWidth = 40;
+            const nodePadding = 20;
+            const nodeSpacing = (width - nodeWidth * 3) / 2;
+            
+            // Draw nodes
+            const nodeGroup = svg.selectAll(".node")
+                .data(nodes)
+                .enter().append("g")
+                .attr("class", "node")
+                .attr("transform", d => `translate(${d.id * nodeSpacing + d.id * nodeWidth}, ${height/2 - 40})`);
+            
+            nodeGroup.append("rect")
+                .attr("width", nodeWidth)
+                .attr("height", 80)
+                .attr("fill", "url(#sankeyGradient)")
+                .attr("stroke", "#fff")
+                .attr("stroke-width", 2);
+            
+            nodeGroup.append("text")
+                .attr("x", nodeWidth / 2)
+                .attr("y", -10)
+                .attr("text-anchor", "middle")
+                .attr("fill", "#fff")
+                .style("font-size", "12px")
+                .text(d => d.name);
+            
+            nodeGroup.append("text")
+                .attr("x", nodeWidth / 2)
+                .attr("y", 100)
+                .attr("text-anchor", "middle")
+                .attr("fill", "#fff")
+                .style("font-size", "14px")
+                .style("font-weight", "bold")
+                .text(d => `$${d.value.toFixed(2)}`);
+            
+            // Draw links (simplified paths)
+            svg.selectAll(".link")
+                .data(links)
+                .enter().append("path")
+                .attr("class", "link")
+                .attr("d", d => {
+                    const x0 = d.source * nodeSpacing + d.source * nodeWidth + nodeWidth;
+                    const y0 = height / 2;
+                    const x1 = d.target * nodeSpacing + d.target * nodeWidth;
+                    const y1 = height / 2;
+                    return `M${x0},${y0} C${(x0+x1)/2},${y0} ${(x0+x1)/2},${y1} ${x1},${y1}`;
+                })
+                .attr("stroke", "rgba(102, 126, 234, 0.3)")
+                .attr("stroke-width", Math.max(2, (d => d.value / subtotal * 30)))
+                .attr("fill", "none");
+        }
+        
+        // 3. STEP CHART - Shows cumulative progression with individual modifiers
+        function updateStepChart(result) {
+            const ctx = document.getElementById('stepChart').getContext('2d');
+            
+            const subtotal = parseFloat(result.subtotal || 0);
+            const modifierTotal = parseFloat(result.modifierTotal || 0);
+            const retailTax = parseFloat(result.retailTax || 0);
+            const finalTotal = parseFloat(result.customerGrandTotal || 0);
+            
+            // Build step data with individual modifiers
+            const labels = ['Start', 'Base Items'];
+            const data = [0, subtotal];
+            let runningTotal = subtotal;
+            
+            // Add individual modifiers
+            if (result.adjustments && result.adjustments.length > 0) {
+                result.adjustments.forEach((adj, index) => {
+                    const amount = parseFloat(adj.amount || 0);
+                    runningTotal += amount;
+                    
+                    // Create short label for step chart
+                    let label = `Mod ${index + 1}`;
+                    if (adj.attributes && adj.attributes.modifier_type) {
+                        const type = adj.attributes.modifier_type;
+                        if (type === 'percentage') {
+                            label = amount < 0 ? `Disc% ${index + 1}` : `Fee% ${index + 1}`;
+                        } else if (type === 'fixed') {
+                            label = amount < 0 ? `Disc$ ${index + 1}` : `Fee$ ${index + 1}`;
+                        }
+                    }
+                    
+                    labels.push(label);
+                    data.push(runningTotal);
+                });
+            } else if (modifierTotal !== 0) {
+                runningTotal += modifierTotal;
+                labels.push('After Modifiers');
+                data.push(runningTotal);
+            }
+            
+            // Add tax step
+            if (retailTax > 0) {
+                runningTotal += retailTax;
+                labels.push('After Tax');
+                data.push(runningTotal);
+            }
+            
+            // Final
+            labels.push('Final');
+            data.push(finalTotal);
+            
+            // Destroy existing chart
+            if (stepChart) {
+                stepChart.destroy();
+            }
+            
+            // Create step chart
+            stepChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Running Total',
+                        data: data,
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                        borderWidth: 3,
+                        fill: true,
+                        stepped: 'before',
+                        tension: 0,
+                        pointRadius: 6,
+                        pointBackgroundColor: 'rgba(102, 126, 234, 1)',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const index = context.dataIndex;
+                                    const currentValue = context.parsed.y;
+                                    
+                                    if (index === 0) {
+                                        return 'Starting: $0.00';
+                                    } else if (index === 1) {
+                                        return `Base Total: $${currentValue.toFixed(2)} (+$${currentValue.toFixed(2)})`;
+                                    } else {
+                                        // Calculate the change from previous step
+                                        const previousValue = data[index - 1];
+                                        const change = currentValue - previousValue;
+                                        const sign = change >= 0 ? '+' : '';
+                                        return `Total: $${currentValue.toFixed(2)} (${sign}$${change.toFixed(2)})`;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(0);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 4. HORIZONTAL STACKED BAR - Shows composition with individual modifiers
+        function updateStackedBar(result) {
+            const ctx = document.getElementById('stackedBar').getContext('2d');
+            
+            const subtotal = parseFloat(result.subtotal || 0);
+            const modifierTotal = parseFloat(result.modifierTotal || 0);
+            const retailTax = parseFloat(result.retailTax || 0);
+            
+            // Build datasets array with individual modifiers
+            const datasets = [];
+            
+            // Base price dataset
+            datasets.push({
+                label: 'Base Price',
+                data: [subtotal],
+                backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                borderColor: 'rgba(102, 126, 234, 1)',
+                borderWidth: 2
+            });
+            
+            // Individual modifier datasets
+            if (result.adjustments && result.adjustments.length > 0) {
+                result.adjustments.forEach((adj, index) => {
+                    const amount = parseFloat(adj.amount || 0);
+                    const absAmount = Math.abs(amount);
+                    
+                    // Create label based on modifier type
+                    let label = `Modifier ${index + 1}`;
+                    if (adj.attributes && adj.attributes.modifier_type) {
+                        const type = adj.attributes.modifier_type;
+                        if (type === 'percentage') {
+                            label = amount < 0 ? `Discount ${index + 1} (%)` : `Fee ${index + 1} (%)`;
+                        } else if (type === 'fixed') {
+                            label = amount < 0 ? `Discount ${index + 1} ($)` : `Fee ${index + 1} ($)`;
+                        } else if (type === 'margin') {
+                            label = `Margin ${index + 1}`;
+                        }
+                    }
+                    
+                    // Different colors for different modifier types
+                    let bgColor, borderColor;
+                    if (amount < 0) {
+                        // Discounts - shades of red
+                        const opacity = 0.8 - (index * 0.1);
+                        bgColor = `rgba(244, 67, 54, ${Math.max(0.4, opacity)})`;
+                        borderColor = 'rgba(244, 67, 54, 1)';
+                    } else {
+                        // Fees - shades of green
+                        const opacity = 0.8 - (index * 0.1);
+                        bgColor = `rgba(76, 175, 80, ${Math.max(0.4, opacity)})`;
+                        borderColor = 'rgba(76, 175, 80, 1)';
+                    }
+                    
+                    datasets.push({
+                        label: label,
+                        data: [absAmount],
+                        backgroundColor: bgColor,
+                        borderColor: borderColor,
+                        borderWidth: 2
+                    });
+                });
+            } else if (modifierTotal !== 0) {
+                // Fallback to combined modifiers
+                datasets.push({
+                    label: modifierTotal < 0 ? 'Discounts' : 'Fees',
+                    data: [Math.abs(modifierTotal)],
+                    backgroundColor: modifierTotal < 0 ? 'rgba(244, 67, 54, 0.8)' : 'rgba(76, 175, 80, 0.8)',
+                    borderColor: modifierTotal < 0 ? 'rgba(244, 67, 54, 1)' : 'rgba(76, 175, 80, 1)',
+                    borderWidth: 2
+                });
+            }
+            
+            // Tax dataset
+            if (retailTax > 0) {
+                datasets.push({
+                    label: 'Tax',
+                    data: [retailTax],
+                    backgroundColor: 'rgba(255, 193, 7, 0.8)',
+                    borderColor: 'rgba(255, 193, 7, 1)',
+                    borderWidth: 2
+                });
+            }
+            
+            // Destroy existing chart
+            if (stackedBarChart) {
+                stackedBarChart.destroy();
+            }
+            
+            // Create horizontal stacked bar
+            stackedBarChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Price Breakdown'],
+                    datasets: datasets
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#fff'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.dataset.label || '';
+                                    const datasetIndex = context.datasetIndex;
+                                    
+                                    // First dataset is base price, always positive
+                                    if (datasetIndex === 0) {
+                                        const value = context.parsed.x;
+                                        return `${label}: +$${value.toFixed(2)}`;
+                                    }
+                                    
+                                    // For modifiers, we need to show the actual signed value
+                                    if (label.includes('Discount')) {
+                                        const value = context.parsed.x;
+                                        const percentage = ((value / subtotal) * 100).toFixed(1);
+                                        return `${label}: -$${value.toFixed(2)} (-${percentage}% of base)`;
+                                    } else if (label.includes('Fee') || label.includes('Margin')) {
+                                        const value = context.parsed.x;
+                                        const percentage = ((value / subtotal) * 100).toFixed(1);
+                                        return `${label}: +$${value.toFixed(2)} (+${percentage}% of base)`;
+                                    } else if (label === 'Tax') {
+                                        const value = context.parsed.x;
+                                        const percentage = ((value / (subtotal + modifierTotal)) * 100).toFixed(1);
+                                        return `${label}: +$${value.toFixed(2)} (${percentage}% of taxable)`;
+                                    } else {
+                                        // Fallback
+                                        const value = context.parsed.x;
+                                        return `${label}: $${value.toFixed(2)}`;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(0);
+                                }
+                            }
+                        },
+                        y: {
+                            stacked: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Show message
+        function showMessage(text, type) {
+            const messageArea = document.getElementById('messageArea');
+            messageArea.innerHTML = `<div class="${type}">${text}</div>`;
+            setTimeout(() => {
+                messageArea.innerHTML = '';
+            }, 3000);
+        }
+        
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            initializeEditor();
+            
+            // Auto-run calculation on load
+            setTimeout(() => {
+                runCalculation();
+            }, 500);
+        });
+        
+        // Keyboard shortcut
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                runCalculation();
+            }
+        });
+    </script>
+</body>
+</html>

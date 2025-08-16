@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculation Engine Test Dashboard</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e1e2e 0%, #151521 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 3em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 20px rgba(102, 126, 234, 0.5)); }
+            to { filter: drop-shadow(0 0 30px rgba(118, 75, 162, 0.8)); }
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 50px;
+            font-size: 1.2em;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .tool-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.2);
+            border-color: rgba(102, 126, 234, 0.5);
+        }
+        
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .tool-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .tool-icon {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+            display: inline-block;
+        }
+        
+        .tool-title {
+            font-size: 1.4em;
+            color: #fff;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .tool-description {
+            color: #aaa;
+            line-height: 1.5;
+            margin-bottom: 20px;
+            font-size: 0.95em;
+        }
+        
+        .tool-features {
+            list-style: none;
+            margin-bottom: 20px;
+        }
+        
+        .tool-features li {
+            color: #888;
+            font-size: 0.9em;
+            padding: 5px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .tool-features li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #4caf50;
+        }
+        
+        .tool-link {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-align: center;
+            width: 100%;
+        }
+        
+        .tool-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .status-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #4caf50;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        
+        .status-badge.new {
+            background: #ff9800;
+        }
+        
+        .status-badge.beta {
+            background: #2196f3;
+        }
+        
+        .category-header {
+            text-align: center;
+            margin: 40px 0 20px;
+            font-size: 1.8em;
+            color: #fff;
+            position: relative;
+            padding-bottom: 10px;
+        }
+        
+        .category-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #667eea, transparent);
+        }
+        
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .stat-label {
+            color: #888;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .nav-hint {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+        }
+        
+        .nav-hint kbd {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Calculation Engine Test Dashboard</h1>
+        <p class="subtitle">Comprehensive Testing Tools for 3-Tier Calculation Engine</p>
+        
+        <!-- Quick Stats -->
+        <div class="quick-stats">
+            <div class="stat-item">
+                <div class="stat-number">15</div>
+                <div class="stat-label">Test Tools Available</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">4</div>
+                <div class="stat-label">Visualization Types</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">3</div>
+                <div class="stat-label">Analysis Tools</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">∞</div>
+                <div class="stat-label">Test Scenarios</div>
+            </div>
+        </div>
+        
+        <!-- Core Testing Tools -->
+        <h2 class="category-header">Core Testing Tools</h2>
+        <div class="dashboard-grid">
+            <!-- Ultimate Test Interface -->
+            <div class="tool-card">
+                <span class="status-badge">Enhanced</span>
+                <div class="tool-icon">⚡</div>
+                <h3 class="tool-title">Ultimate Test Interface</h3>
+                <p class="tool-description">The most comprehensive testing interface with all features integrated</p>
+                <ul class="tool-features">
+                    <li>Live calculation mode</li>
+                    <li>Diff view for results</li>
+                    <li>Quick scenario buttons</li>
+                    <li>Test scenario library</li>
+                    <li>Responsive sliders</li>
+                </ul>
+                <a href="calculation-engine-test-ultimate.html" class="tool-link">Launch Ultimate Tester</a>
+            </div>
+            
+            <!-- Phase 2 Enhanced -->
+            <div class="tool-card">
+                <span class="status-badge">Stable</span>
+                <div class="tool-icon">🔬</div>
+                <h3 class="tool-title">Phase 2 Enhanced</h3>
+                <p class="tool-description">Enhanced calculation testing with improved UI and features</p>
+                <ul class="tool-features">
+                    <li>Clean, modern interface</li>
+                    <li>Quick test scenarios</li>
+                    <li>JSON validation</li>
+                    <li>Real-time feedback</li>
+                </ul>
+                <a href="calculation-engine-test-enhanced.html" class="tool-link">Open Phase 2 Tester</a>
+            </div>
+            
+            <!-- Original Test Interface -->
+            <div class="tool-card">
+                <span class="status-badge">Legacy</span>
+                <div class="tool-icon">🔧</div>
+                <h3 class="tool-title">Original Test Interface</h3>
+                <p class="tool-description">The original calculation engine test interface</p>
+                <ul class="tool-features">
+                    <li>Basic calculation testing</li>
+                    <li>JSON input/output</li>
+                    <li>Simple and reliable</li>
+                </ul>
+                <a href="calculation-engine-test.html" class="tool-link">Open Original Tester</a>
+            </div>
+        </div>
+        
+        <!-- Visualization Tools -->
+        <h2 class="category-header">Visualization Tools</h2>
+        <div class="dashboard-grid">
+            <!-- Multiple Visualizations -->
+            <div class="tool-card">
+                <span class="status-badge new">New</span>
+                <div class="tool-icon">📊</div>
+                <h3 class="tool-title">Multiple Visualizations</h3>
+                <p class="tool-description">Four different ways to visualize calculation results</p>
+                <ul class="tool-features">
+                    <li>Waterfall chart with individual modifiers</li>
+                    <li>Sankey flow diagram</li>
+                    <li>Step chart progression</li>
+                    <li>Horizontal bar comparison</li>
+                </ul>
+                <a href="calculation-engine-test-visualizations.html" class="tool-link">View Visualizations</a>
+            </div>
+            
+            <!-- Waterfall Visualization -->
+            <div class="tool-card">
+                <span class="status-badge">Complete</span>
+                <div class="tool-icon">💧</div>
+                <h3 class="tool-title">Waterfall Breakdown</h3>
+                <p class="tool-description">Cascading waterfall chart showing calculation progression</p>
+                <ul class="tool-features">
+                    <li>Individual modifier breakdown</li>
+                    <li>Signed value tooltips</li>
+                    <li>Color-coded changes</li>
+                    <li>Export to image</li>
+                </ul>
+                <a href="calculation-engine-test-phase2-waterfall.html" class="tool-link">Open Waterfall Chart</a>
+            </div>
+            
+            <!-- Flow Diagram -->
+            <div class="tool-card">
+                <span class="status-badge new">New</span>
+                <div class="tool-icon">🔀</div>
+                <h3 class="tool-title">Calculation Flow Diagram</h3>
+                <p class="tool-description">Visual flow diagram showing calculation steps with Mermaid.js</p>
+                <ul class="tool-features">
+                    <li>Step-by-step visualization</li>
+                    <li>Expandable nodes</li>
+                    <li>Color-coded by type</li>
+                    <li>Export to PNG/SVG</li>
+                    <li>Direction controls</li>
+                </ul>
+                <a href="calculation-engine-test-flow-diagram.html" class="tool-link">View Flow Diagram</a>
+            </div>
+        </div>
+        
+        <!-- Analysis Tools -->
+        <h2 class="category-header">Analysis & Debugging Tools</h2>
+        <div class="dashboard-grid">
+            <!-- Conflict Analyzer -->
+            <div class="tool-card">
+                <span class="status-badge new">New</span>
+                <div class="tool-icon">🔍</div>
+                <h3 class="tool-title">Conflict & Coverage Analyzer</h3>
+                <p class="tool-description">Pre-run conflict detection and dependency analysis</p>
+                <ul class="tool-features">
+                    <li>Circular dependency detection</li>
+                    <li>Incompatible modifier checking</li>
+                    <li>D3.js dependency graph</li>
+                    <li>Coverage analysis</li>
+                    <li>Resolution suggestions</li>
+                </ul>
+                <a href="calculation-engine-test-conflict-analyzer.html" class="tool-link">Launch Analyzer</a>
+            </div>
+            
+            <!-- Test API -->
+            <div class="tool-card">
+                <span class="status-badge beta">Beta</span>
+                <div class="tool-icon">🔌</div>
+                <h3 class="tool-title">Test API Interface</h3>
+                <p class="tool-description">Direct API testing interface for calculation engine</p>
+                <ul class="tool-features">
+                    <li>Direct API calls</li>
+                    <li>Response validation</li>
+                    <li>Performance metrics</li>
+                </ul>
+                <a href="calculation-engine-test-api.js" class="tool-link" onclick="alert('This is a Node.js script. Run with: node calculation-engine-test-api.js'); return false;">View API Script</a>
+            </div>
+        </div>
+        
+        <!-- Demo Pages -->
+        <h2 class="category-header">Demo & Example Pages</h2>
+        <div class="dashboard-grid">
+            <!-- Product Demo -->
+            <div class="tool-card">
+                <span class="status-badge">Demo</span>
+                <div class="tool-icon">🛍️</div>
+                <h3 class="tool-title">Product Demo</h3>
+                <p class="tool-description">Interactive product selection and calculation demo</p>
+                <ul class="tool-features">
+                    <li>Product catalog integration</li>
+                    <li>Line item management</li>
+                    <li>Real-time calculations</li>
+                </ul>
+                <a href="product-demo.html" class="tool-link">Launch Product Demo</a>
+            </div>
+            
+            <!-- Manual Location Test -->
+            <div class="tool-card">
+                <span class="status-badge">Test</span>
+                <div class="tool-icon">📍</div>
+                <h3 class="tool-title">Location Test</h3>
+                <p class="tool-description">Test location-based tax calculations</p>
+                <ul class="tool-features">
+                    <li>Location hierarchy</li>
+                    <li>Tax rate lookup</li>
+                    <li>Multi-location testing</li>
+                </ul>
+                <a href="manual-location-test.html" class="tool-link">Test Locations</a>
+            </div>
+        </div>
+        
+        <!-- Navigation Hint -->
+        <div class="nav-hint">
+            💡 <strong>Pro Tip:</strong> Keep this dashboard open in a tab for quick access to all testing tools. 
+            Press <kbd>Cmd</kbd>+<kbd>Click</kbd> (Mac) or <kbd>Ctrl</kbd>+<kbd>Click</kbd> (Windows) to open tools in new tabs.
+        </div>
+    </div>
+    
+    <script>
+        // Add some interactive features
+        document.addEventListener('DOMContentLoaded', () => {
+            // Animate cards on page load
+            const cards = document.querySelectorAll('.tool-card');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    card.style.transition = 'all 0.5s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+            
+            // Add click sound effect (optional)
+            const links = document.querySelectorAll('.tool-link');
+            links.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    // Add a brief scale animation
+                    link.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        link.style.transform = '';
+                    }, 100);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

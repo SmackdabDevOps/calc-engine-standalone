@@ -1,0 +1,15 @@
+# Render deployment configuration for Calculation Engine
+services:
+  - type: web
+    name: calc-engine-test
+    runtime: node
+    plan: starter  # or 'free' for testing
+    region: oregon  # or your preferred region
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000  # Render requires port 10000

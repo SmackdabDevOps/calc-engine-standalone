@@ -1,0 +1,1618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pure Calculation Engine Test Interface - Ultimate Edition</title>
+    
+    <!-- CodeMirror for JSON editing with syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.11/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.11/theme/monokai.min.css">
+    
+    <style>
+        /* Modern, clean design with dark theme */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e1e2e 0%, #151521 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(102, 126, 234, 0.3);
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .engine-info {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .engine-info .version {
+            font-size: 1.2em;
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .engine-info .status {
+            padding: 5px 15px;
+            background: #4caf50;
+            border-radius: 20px;
+            color: white;
+            font-weight: 500;
+        }
+        
+        .live-mode-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 12px;
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4caf50;
+            border-radius: 20px;
+            margin-left: 15px;
+        }
+        
+        .live-mode-indicator.active {
+            background: rgba(76, 175, 80, 0.3);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .panel h2 {
+            color: #fff;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .panel h2::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        /* Quick Scenario Buttons */
+        .quick-scenarios {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+        }
+        
+        .quick-btn {
+            padding: 8px 12px;
+            background: linear-gradient(135deg, #3f51b5 0%, #2196f3 100%);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        
+        .quick-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.4);
+        }
+        
+        /* Responsive Testing Sliders */
+        .slider-controls {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .slider-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 15px;
+        }
+        
+        .slider-label {
+            min-width: 100px;
+            color: #bbb;
+            font-size: 13px;
+        }
+        
+        .slider {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+        }
+        
+        .slider-value {
+            min-width: 80px;
+            text-align: right;
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        /* Test Scenario Library */
+        .scenario-library {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .scenario-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .saved-scenarios {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .scenario-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+        
+        .scenario-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        select, button, input[type="text"], input[type="number"] {
+            padding: 10px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        input[type="text"], input[type="number"] {
+            cursor: text;
+        }
+        
+        select:hover, button:hover, input:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        button.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            font-weight: 600;
+            padding: 12px 30px;
+            font-size: 16px;
+        }
+        
+        button.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button.secondary {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4caf50;
+        }
+        
+        button.secondary:hover {
+            background: rgba(76, 175, 80, 0.3);
+        }
+        
+        button.danger {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid #f44336;
+        }
+        
+        button.danger:hover {
+            background: rgba(244, 67, 54, 0.3);
+        }
+        
+        /* Editor Validation Indicator */
+        .CodeMirror {
+            height: 400px;
+            border-radius: 5px;
+            font-size: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            transition: border-color 0.3s;
+        }
+        
+        .CodeMirror.valid {
+            border-color: #4caf50;
+        }
+        
+        .CodeMirror.invalid {
+            border-color: #f44336;
+        }
+        
+        .CodeMirror.calculating {
+            border-color: #ff9800;
+        }
+        
+        /* Diff View Styles */
+        .diff-view {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 10px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .diff-added {
+            color: #4caf50;
+            background: rgba(76, 175, 80, 0.1);
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        
+        .diff-removed {
+            color: #f44336;
+            background: rgba(244, 67, 54, 0.1);
+            padding: 2px 4px;
+            border-radius: 3px;
+            text-decoration: line-through;
+        }
+        
+        .diff-changed {
+            color: #ff9800;
+            background: rgba(255, 152, 0, 0.1);
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        
+        .result-display {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            padding: 15px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .error {
+            background: rgba(244, 67, 54, 0.1);
+            border: 1px solid #f44336;
+            color: #ff9999;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .success {
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid #4caf50;
+            color: #90ee90;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .checksum {
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 12px;
+            color: #888;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            word-break: break-all;
+        }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            animation: fadeIn 0.2s;
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: linear-gradient(135deg, #2a2a3e 0%, #1a1a2e 100%);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: slideUp 0.3s;
+        }
+        
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #fff;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #888;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        
+        .modal-close:hover {
+            color: #fff;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #bbb;
+            margin-bottom: 5px;
+        }
+        
+        .form-input, .form-select {
+            width: 100%;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            font-size: 14px;
+            color: #fff;
+        }
+        
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #bbb;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from { 
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to { 
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 158, 11, 0.3);
+        }
+        
+        .history-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .history-item {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #667eea;
+        }
+        
+        .history-item .timestamp {
+            color: #888;
+            font-size: 12px;
+        }
+        
+        .history-item .fixture-name {
+            color: #667eea;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .stat-card {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stat-card .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-card .label {
+            color: #888;
+            font-size: 12px;
+            margin-top: 5px;
+            text-transform: uppercase;
+        }
+        
+        /* Loading animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            background: rgba(102, 126, 234, 0.2);
+            border: 1px solid #667eea;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-left: 10px;
+            color: #a8b9ff;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: .4s;
+            border-radius: 24px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: #4caf50;
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚡ Pure Calculation Engine Test Interface - Ultimate</h1>
+        <p class="subtitle">Direct access to the core calculation engine with advanced testing features</p>
+        
+        <!-- Engine Info Bar -->
+        <div class="engine-info">
+            <div>
+                <span class="version">Engine v<span id="engineVersion">Loading...</span></span>
+                <span class="badge" id="precision">Loading...</span>
+                <div class="live-mode-indicator" id="liveModeIndicator">
+                    <span>🔴</span>
+                    <span>Live Mode</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="liveModeToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="status" id="engineStatus">Initializing...</div>
+        </div>
+        
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Input Panel -->
+            <div class="panel">
+                <h2>Input Configuration</h2>
+                
+                <!-- Quick Scenarios (Feature 13) -->
+                <div class="quick-scenarios">
+                    <button class="quick-btn" onclick="applyQuickScenario('simple')">Simple Tax</button>
+                    <button class="quick-btn" onclick="applyQuickScenario('discount10')">10% Discount</button>
+                    <button class="quick-btn" onclick="applyQuickScenario('discount25')">25% Discount</button>
+                    <button class="quick-btn" onclick="applyQuickScenario('fixedFee')">+$15 Fee</button>
+                    <button class="quick-btn" onclick="applyQuickScenario('margin30')">30% Margin</button>
+                    <button class="quick-btn" onclick="applyQuickScenario('multiTax')">Multi-Tax</button>
+                    <button class="quick-btn" onclick="applyQuickScenario('complex')">Complex</button>
+                    <button class="quick-btn" onclick="applyQuickScenario('empty')">Empty</button>
+                </div>
+                
+                <!-- Responsive Testing Sliders (Feature 11) -->
+                <div class="slider-controls">
+                    <div class="slider-row">
+                        <span class="slider-label">Quantity:</span>
+                        <input type="range" class="slider" id="quantitySlider" min="1" max="100" value="1">
+                        <span class="slider-value" id="quantityValue">1</span>
+                    </div>
+                    <div class="slider-row">
+                        <span class="slider-label">Unit Price:</span>
+                        <input type="range" class="slider" id="priceSlider" min="1" max="1000" value="100">
+                        <span class="slider-value" id="priceValue">$100.00</span>
+                    </div>
+                    <div class="slider-row">
+                        <span class="slider-label">Tax Rate:</span>
+                        <input type="range" class="slider" id="taxSlider" min="0" max="30" step="0.5" value="10">
+                        <span class="slider-value" id="taxValue">10.0%</span>
+                    </div>
+                    <div class="slider-row">
+                        <span class="slider-label">Discount:</span>
+                        <input type="range" class="slider" id="discountSlider" min="0" max="50" value="0">
+                        <span class="slider-value" id="discountValue">0%</span>
+                    </div>
+                </div>
+                
+                <!-- Test Scenario Library (Feature 6) -->
+                <div class="scenario-library">
+                    <div class="scenario-controls">
+                        <input type="text" id="scenarioName" placeholder="Scenario name...">
+                        <button class="secondary" onclick="saveScenario()">💾 Save</button>
+                        <button onclick="exportScenarios()">📤 Export</button>
+                        <button onclick="importScenarios()">📥 Import</button>
+                        <input type="file" id="importFile" style="display: none;" accept=".json">
+                    </div>
+                    <select id="savedScenarios" onchange="loadSavedScenario()">
+                        <option value="">-- Saved Scenarios --</option>
+                    </select>
+                </div>
+                
+                <div class="controls">
+                    <select id="fixtureSelect">
+                        <option value="">-- Select Test Fixture --</option>
+                    </select>
+                    <button class="secondary" onclick="loadFixture()">Load Fixture</button>
+                    <button class="warning" onclick="showModifierBuilder()">+ Add Modifier</button>
+                    <button class="danger" onclick="clearInput()">Clear</button>
+                </div>
+                
+                <div id="inputEditor"></div>
+                
+                <div style="margin-top: 15px; text-align: center;">
+                    <button class="primary" onclick="runCalculation()">
+                        🧮 Calculate
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Output Panel -->
+            <div class="panel">
+                <h2>Calculation Result</h2>
+                
+                <!-- Diff View Toggle -->
+                <div style="margin-bottom: 10px;">
+                    <label>
+                        <input type="checkbox" id="showDiff" checked> Show Diff
+                    </label>
+                </div>
+                
+                <div id="resultDisplay" class="result-display">
+                    No calculation performed yet.
+                    Click "Calculate" to see results.
+                </div>
+                
+                <!-- Diff View (Feature 15) -->
+                <div id="diffView" class="diff-view" style="display: none;"></div>
+                
+                <div id="checksumDisplay" class="checksum" style="display: none;">
+                    <strong>SHA-256 Checksum:</strong> <span id="checksumValue"></span>
+                </div>
+                
+                <!-- Stats Grid -->
+                <div class="stats-grid" id="statsGrid" style="display: none;">
+                    <div class="stat-card">
+                        <div class="value" id="statSubtotal">$0.00</div>
+                        <div class="label">Subtotal</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value" id="statModifiers">$0.00</div>
+                        <div class="label">Modifiers</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value" id="statTax">$0.00</div>
+                        <div class="label">Tax</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value" id="statTotal">$0.00</div>
+                        <div class="label">Total</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- History Panel -->
+        <div class="history-panel">
+            <h2>Calculation History <span class="badge" id="historyCount">0</span></h2>
+            <div id="historyList">
+                <div style="color: #888; text-align: center; padding: 20px;">
+                    No calculations yet. Run a calculation to see history.
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- CodeMirror JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.11/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.11/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.11/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.11/addon/edit/closebrackets.min.js"></script>
+    
+    <script>
+        // Configuration - Dynamic port detection
+        const API_BASE_URL = window.location.origin + '/api/engine';
+        
+        // Global state
+        let inputEditor;
+        let calculationHistory = [];
+        let currentFixture = null;
+        let previousResult = null;
+        let liveCalculationTimeout = null;
+        let isLiveModeEnabled = true;
+        let savedScenarios = {};
+        
+        // Quick Scenario Templates (Feature 13)
+        const quickScenarios = {
+            simple: {
+                lineItems: [{ id: "line-1", unitPrice: "100.00", quantity: 1 }],
+                modifiers: [],
+                dependencies: [],
+                config: { tax_rate: 0.10, tax_mode: "RETAIL", schemaVersion: "1.0.0" }
+            },
+            discount10: {
+                lineItems: [{ id: "line-1", unitPrice: "100.00", quantity: 1 }],
+                modifiers: [{ id: "discount", modifier_type: "percentage", value: "-10", application_type: "pre_tax" }],
+                dependencies: [],
+                config: { tax_rate: 0.10, tax_mode: "RETAIL", schemaVersion: "1.0.0" }
+            },
+            discount25: {
+                lineItems: [{ id: "line-1", unitPrice: "200.00", quantity: 2 }],
+                modifiers: [{ id: "discount", modifier_type: "percentage", value: "-25", application_type: "pre_tax" }],
+                dependencies: [],
+                config: { tax_rate: 0.0875, tax_mode: "RETAIL", schemaVersion: "1.0.0" }
+            },
+            fixedFee: {
+                lineItems: [{ id: "line-1", unitPrice: "50.00", quantity: 3 }],
+                modifiers: [{ id: "fee", modifier_type: "fixed", value: "15", application_type: "pre_tax" }],
+                dependencies: [],
+                config: { tax_rate: 0.06, tax_mode: "RETAIL", schemaVersion: "1.0.0" }
+            },
+            margin30: {
+                lineItems: [{ id: "line-1", unitPrice: "100.00", quantity: 1, cost: "70.00" }],
+                modifiers: [{ id: "margin", modifier_type: "margin", value: "30", application_type: "pre_tax" }],
+                dependencies: [],
+                config: { tax_rate: 0.08, tax_mode: "RETAIL", schemaVersion: "1.0.0" }
+            },
+            multiTax: {
+                lineItems: [{ id: "line-1", unitPrice: "1000.00", quantity: 1 }],
+                modifiers: [],
+                dependencies: [],
+                config: {
+                    tax_mode: "RETAIL",
+                    schemaVersion: "1.0.0",
+                    jurisdictions: [
+                        { code: "STATE", rate: 0.06, order: 1 },
+                        { code: "COUNTY", rate: 0.02, order: 2 },
+                        { code: "CITY", rate: 0.015, order: 3 }
+                    ]
+                }
+            },
+            complex: {
+                lineItems: [
+                    { id: "laptop", unitPrice: "1200.00", quantity: 2, cost: "800.00" },
+                    { id: "mouse", unitPrice: "25.00", quantity: 4, cost: "10.00" }
+                ],
+                modifiers: [
+                    { id: "volume", modifier_type: "percentage", value: "-12", application_type: "pre_tax", chain_priority: 100 },
+                    { id: "shipping", modifier_type: "fixed", value: "50", application_type: "pre_tax", chain_priority: 200 }
+                ],
+                dependencies: [],
+                config: { tax_rate: 0.0925, tax_mode: "RETAIL", schemaVersion: "1.0.0" }
+            },
+            empty: {
+                lineItems: [],
+                modifiers: [],
+                dependencies: [],
+                config: { tax_rate: 0.10, tax_mode: "RETAIL", schemaVersion: "1.0.0" }
+            }
+        };
+        
+        // Initialize CodeMirror editor
+        function initializeEditor() {
+            inputEditor = CodeMirror(document.getElementById('inputEditor'), {
+                mode: 'application/json',
+                theme: 'monokai',
+                lineNumbers: true,
+                matchBrackets: true,
+                autoCloseBrackets: true,
+                indentUnit: 2,
+                tabSize: 2,
+                value: JSON.stringify(quickScenarios.simple, null, 2)
+            });
+            
+            // Live calculation mode (Feature 7)
+            inputEditor.on('change', () => {
+                if (isLiveModeEnabled) {
+                    clearTimeout(liveCalculationTimeout);
+                    
+                    // Update editor border to show calculating
+                    inputEditor.getWrapperElement().classList.add('calculating');
+                    inputEditor.getWrapperElement().classList.remove('valid', 'invalid');
+                    
+                    // Debounce calculation
+                    liveCalculationTimeout = setTimeout(() => {
+                        performLiveCalculation();
+                    }, 500);
+                }
+            });
+        }
+        
+        // Perform live calculation (Feature 7)
+        async function performLiveCalculation() {
+            try {
+                const input = JSON.parse(inputEditor.getValue());
+                
+                // Mark editor as valid
+                inputEditor.getWrapperElement().classList.add('valid');
+                inputEditor.getWrapperElement().classList.remove('invalid', 'calculating');
+                
+                // Run calculation
+                const response = await fetch(`${API_BASE_URL}/calculate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(input)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    displayResult(result, 0);
+                    updateStats(result);
+                    
+                    // Show diff if enabled (Feature 15)
+                    if (document.getElementById('showDiff').checked && previousResult) {
+                        showDiff(previousResult, result);
+                    }
+                    previousResult = result;
+                }
+            } catch (error) {
+                // Mark editor as invalid
+                inputEditor.getWrapperElement().classList.add('invalid');
+                inputEditor.getWrapperElement().classList.remove('valid', 'calculating');
+            }
+        }
+        
+        // Apply quick scenario (Feature 13)
+        function applyQuickScenario(scenarioKey) {
+            const scenario = quickScenarios[scenarioKey];
+            if (scenario) {
+                inputEditor.setValue(JSON.stringify(scenario, null, 2));
+                showMessage(`Loaded scenario: ${scenarioKey}`, 'success');
+            }
+        }
+        
+        // Setup responsive sliders (Feature 11)
+        function setupSliders() {
+            // Quantity slider
+            const quantitySlider = document.getElementById('quantitySlider');
+            quantitySlider.addEventListener('input', (e) => {
+                document.getElementById('quantityValue').textContent = e.target.value;
+                updateInputFromSliders();
+            });
+            
+            // Price slider
+            const priceSlider = document.getElementById('priceSlider');
+            priceSlider.addEventListener('input', (e) => {
+                document.getElementById('priceValue').textContent = `$${e.target.value}.00`;
+                updateInputFromSliders();
+            });
+            
+            // Tax slider
+            const taxSlider = document.getElementById('taxSlider');
+            taxSlider.addEventListener('input', (e) => {
+                document.getElementById('taxValue').textContent = `${e.target.value}%`;
+                updateInputFromSliders();
+            });
+            
+            // Discount slider
+            const discountSlider = document.getElementById('discountSlider');
+            discountSlider.addEventListener('input', (e) => {
+                document.getElementById('discountValue').textContent = `${e.target.value}%`;
+                updateInputFromSliders();
+            });
+        }
+        
+        // Update input from sliders (Feature 11)
+        function updateInputFromSliders() {
+            try {
+                const input = JSON.parse(inputEditor.getValue());
+                
+                // Update first line item if exists
+                if (input.lineItems && input.lineItems.length > 0) {
+                    input.lineItems[0].quantity = parseInt(document.getElementById('quantitySlider').value);
+                    input.lineItems[0].unitPrice = document.getElementById('priceSlider').value + '.00';
+                }
+                
+                // Update tax rate
+                if (input.config) {
+                    input.config.tax_rate = parseFloat(document.getElementById('taxSlider').value) / 100;
+                }
+                
+                // Update or add discount modifier
+                const discountValue = parseFloat(document.getElementById('discountSlider').value);
+                if (discountValue > 0) {
+                    const discountMod = input.modifiers.find(m => m.id === 'slider-discount');
+                    if (discountMod) {
+                        discountMod.value = '-' + discountValue;
+                    } else {
+                        input.modifiers.push({
+                            id: 'slider-discount',
+                            modifier_type: 'percentage',
+                            value: '-' + discountValue,
+                            application_type: 'pre_tax'
+                        });
+                    }
+                } else {
+                    // Remove discount if 0
+                    input.modifiers = input.modifiers.filter(m => m.id !== 'slider-discount');
+                }
+                
+                inputEditor.setValue(JSON.stringify(input, null, 2));
+            } catch (e) {
+                // Invalid JSON, ignore
+            }
+        }
+        
+        // Save scenario (Feature 6)
+        function saveScenario() {
+            const name = document.getElementById('scenarioName').value.trim();
+            if (!name) {
+                showMessage('Please enter a scenario name', 'error');
+                return;
+            }
+            
+            try {
+                const input = JSON.parse(inputEditor.getValue());
+                savedScenarios[name] = {
+                    name: name,
+                    timestamp: new Date().toISOString(),
+                    input: input
+                };
+                
+                // Save to localStorage
+                localStorage.setItem('savedScenarios', JSON.stringify(savedScenarios));
+                
+                // Update dropdown
+                updateSavedScenariosDropdown();
+                
+                // Clear name input
+                document.getElementById('scenarioName').value = '';
+                
+                showMessage(`Saved scenario: ${name}`, 'success');
+            } catch (error) {
+                showMessage('Invalid JSON - cannot save', 'error');
+            }
+        }
+        
+        // Load saved scenario (Feature 6)
+        function loadSavedScenario() {
+            const select = document.getElementById('savedScenarios');
+            const name = select.value;
+            
+            if (name && savedScenarios[name]) {
+                inputEditor.setValue(JSON.stringify(savedScenarios[name].input, null, 2));
+                showMessage(`Loaded scenario: ${name}`, 'success');
+            }
+        }
+        
+        // Export scenarios (Feature 6)
+        function exportScenarios() {
+            const dataStr = JSON.stringify(savedScenarios, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = `scenarios-${new Date().toISOString().split('T')[0]}.json`;
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+        }
+        
+        // Import scenarios (Feature 6)
+        function importScenarios() {
+            document.getElementById('importFile').click();
+        }
+        
+        // Handle file import
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    savedScenarios = { ...savedScenarios, ...imported };
+                    localStorage.setItem('savedScenarios', JSON.stringify(savedScenarios));
+                    updateSavedScenariosDropdown();
+                    showMessage('Scenarios imported successfully', 'success');
+                } catch (error) {
+                    showMessage('Failed to import scenarios', 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+        
+        // Update saved scenarios dropdown
+        function updateSavedScenariosDropdown() {
+            const select = document.getElementById('savedScenarios');
+            select.innerHTML = '<option value="">-- Saved Scenarios --</option>';
+            
+            Object.keys(savedScenarios).sort().forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                select.appendChild(option);
+            });
+        }
+        
+        // Show diff between results (Feature 15)
+        function showDiff(oldResult, newResult) {
+            const diffView = document.getElementById('diffView');
+            const diffs = [];
+            
+            // Compare key values
+            const keys = new Set([...Object.keys(oldResult), ...Object.keys(newResult)]);
+            
+            keys.forEach(key => {
+                if (key === 'checksum') return; // Skip checksum in diff
+                
+                const oldVal = oldResult[key];
+                const newVal = newResult[key];
+                
+                if (oldVal === undefined) {
+                    diffs.push(`<span class="diff-added">+ ${key}: ${JSON.stringify(newVal)}</span>`);
+                } else if (newVal === undefined) {
+                    diffs.push(`<span class="diff-removed">- ${key}: ${JSON.stringify(oldVal)}</span>`);
+                } else if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+                    diffs.push(`<span class="diff-changed">~ ${key}: ${JSON.stringify(oldVal)} → ${JSON.stringify(newVal)}</span>`);
+                }
+            });
+            
+            if (diffs.length > 0) {
+                diffView.innerHTML = '<strong>Changes from previous:</strong><br>' + diffs.join('<br>');
+                diffView.style.display = 'block';
+            } else {
+                diffView.innerHTML = '<em>No changes from previous calculation</em>';
+                diffView.style.display = 'block';
+            }
+        }
+        
+        // Toggle live mode
+        function toggleLiveMode() {
+            isLiveModeEnabled = document.getElementById('liveModeToggle').checked;
+            const indicator = document.getElementById('liveModeIndicator');
+            
+            if (isLiveModeEnabled) {
+                indicator.classList.add('active');
+                indicator.querySelector('span').textContent = '🟢';
+            } else {
+                indicator.classList.remove('active');
+                indicator.querySelector('span').textContent = '🔴';
+            }
+        }
+        
+        // Load engine info
+        async function loadEngineInfo() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/info`);
+                const data = await response.json();
+                
+                document.getElementById('engineVersion').textContent = data.version;
+                document.getElementById('precision').textContent = `Precision: ${data.capabilities.precision}`;
+                document.getElementById('engineStatus').textContent = '✅ Connected';
+                document.getElementById('engineStatus').style.background = '#4caf50';
+                
+                console.log('Engine capabilities:', data.capabilities);
+            } catch (error) {
+                console.error('Failed to load engine info:', error);
+                document.getElementById('engineStatus').textContent = '❌ Disconnected';
+                document.getElementById('engineStatus').style.background = '#f44336';
+            }
+        }
+        
+        // Load fixtures
+        async function loadFixtures() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/fixtures`);
+                const fixtures = await response.json();
+                
+                const select = document.getElementById('fixtureSelect');
+                select.innerHTML = '<option value="">-- Select Test Fixture --</option>';
+                
+                fixtures.forEach(fixture => {
+                    const option = document.createElement('option');
+                    option.value = fixture.id;
+                    option.textContent = `${fixture.name} - ${fixture.description}`;
+                    select.appendChild(option);
+                });
+                
+                console.log(`Loaded ${fixtures.length} fixtures`);
+            } catch (error) {
+                console.error('Failed to load fixtures:', error);
+            }
+        }
+        
+        // Load selected fixture
+        async function loadFixture() {
+            const fixtureId = document.getElementById('fixtureSelect').value;
+            if (!fixtureId) {
+                alert('Please select a fixture first');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/fixtures/${fixtureId}`);
+                const fixture = await response.json();
+                
+                currentFixture = fixture;
+                inputEditor.setValue(JSON.stringify(fixture.input, null, 2));
+                
+                showMessage(`Loaded fixture: ${fixture.name}`, 'success');
+            } catch (error) {
+                console.error('Failed to load fixture:', error);
+                showMessage('Failed to load fixture', 'error');
+            }
+        }
+        
+        // Clear input
+        function clearInput() {
+            inputEditor.setValue(JSON.stringify({
+                lineItems: [],
+                modifiers: [],
+                dependencies: [],
+                config: {
+                    tax_rate: 0,
+                    tax_mode: "RETAIL",
+                    schemaVersion: "1.0.0"
+                }
+            }, null, 2));
+            currentFixture = null;
+            document.getElementById('fixtureSelect').value = '';
+        }
+        
+        // Show modifier builder modal
+        function showModifierBuilder() {
+            document.getElementById('modifierModal').classList.add('active');
+            checkForConflicts();
+        }
+        
+        // Close modifier builder modal
+        function closeModifierBuilder() {
+            document.getElementById('modifierModal').classList.remove('active');
+        }
+        
+        // Update modifier form based on type
+        function updateModifierForm() {
+            const type = document.getElementById('modifierType').value;
+            const valueInput = document.getElementById('modifierValue');
+            
+            if (type === 'percentage') {
+                valueInput.placeholder = 'e.g., -10 for 10% discount';
+            } else if (type === 'fixed') {
+                valueInput.placeholder = 'e.g., 25 for $25 fee';
+            } else if (type === 'margin') {
+                valueInput.placeholder = 'e.g., 30 for 30% margin';
+            }
+            
+            checkForConflicts();
+        }
+        
+        // Check for potential conflicts
+        function checkForConflicts() {
+            try {
+                const input = JSON.parse(inputEditor.getValue());
+                const conflicts = [];
+                
+                const newId = document.getElementById('modifierId').value;
+                const newType = document.getElementById('modifierType').value;
+                const newPriority = parseInt(document.getElementById('chainPriority').value);
+                
+                // Check for duplicate ID
+                if (newId && input.modifiers?.some(m => m.id === newId)) {
+                    conflicts.push('A modifier with this ID already exists');
+                }
+                
+                // Check for same priority
+                if (input.modifiers?.some(m => (m.chain_priority || 1000) === newPriority)) {
+                    conflicts.push('Another modifier has the same chain priority');
+                }
+                
+                // Check for multiple margins
+                if (newType === 'margin' && input.modifiers?.some(m => m.modifier_type === 'margin')) {
+                    conflicts.push('A margin modifier already exists');
+                }
+                
+                // Display conflicts
+                const warningDiv = document.getElementById('conflictWarning');
+                const conflictList = document.getElementById('conflictList');
+                
+                if (conflicts.length > 0) {
+                    conflictList.innerHTML = conflicts.map(c => `<li>${c}</li>`).join('');
+                    warningDiv.style.display = 'block';
+                } else {
+                    warningDiv.style.display = 'none';
+                }
+            } catch (e) {
+                // Invalid JSON, can't check for conflicts
+            }
+        }
+        
+        // Add modifier to input
+        function addModifierToInput() {
+            try {
+                const input = JSON.parse(inputEditor.getValue());
+                
+                const modifier = {
+                    id: document.getElementById('modifierId').value || 'mod-' + Date.now(),
+                    modifier_type: document.getElementById('modifierType').value,
+                    value: parseFloat(document.getElementById('modifierValue').value),
+                    application_type: document.getElementById('applicationType').value,
+                    category: document.getElementById('modifierCategory').value || undefined,
+                    tax_setting: document.getElementById('modifierTaxSetting').value,
+                    chain_priority: parseInt(document.getElementById('chainPriority').value),
+                    display_mode: document.getElementById('displayMode').value,
+                    affects_quantity: document.getElementById('affectsQuantity').checked,
+                    product_id: document.getElementById('modifierProductId').value || undefined
+                };
+                
+                // Remove undefined fields
+                Object.keys(modifier).forEach(key => {
+                    if (modifier[key] === undefined) {
+                        delete modifier[key];
+                    }
+                });
+                
+                // Validate
+                const errors = [];
+                if (!modifier.id) errors.push('ID is required');
+                if (isNaN(modifier.value)) errors.push('Value must be a number');
+                if (modifier.modifier_type === 'margin' && (modifier.value < 0 || modifier.value > 100)) {
+                    errors.push('Margin must be between 0 and 100');
+                }
+                
+                if (errors.length > 0) {
+                    const errorDiv = document.getElementById('validationErrors');
+                    const errorList = document.getElementById('errorList');
+                    errorList.innerHTML = errors.map(e => `<li>${e}</li>`).join('');
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+                
+                // Add modifier
+                if (!input.modifiers) {
+                    input.modifiers = [];
+                }
+                input.modifiers.push(modifier);
+                
+                // Update editor
+                inputEditor.setValue(JSON.stringify(input, null, 2));
+                
+                // Close modal
+                closeModifierBuilder();
+                
+                // Calculate if in live mode
+                if (isLiveMode) {
+                    runCalculation();
+                }
+            } catch (error) {
+                alert('Failed to add modifier: ' + error.message);
+            }
+        }
+        
+        // Run calculation
+        async function runCalculation() {
+            try {
+                const input = JSON.parse(inputEditor.getValue());
+                
+                const resultDisplay = document.getElementById('resultDisplay');
+                resultDisplay.innerHTML = '<div class="loading"></div> Calculating...';
+                
+                const startTime = performance.now();
+                const response = await fetch(`${API_BASE_URL}/calculate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(input)
+                });
+                const endTime = performance.now();
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    displayResult(result, endTime - startTime);
+                    addToHistory(input, result);
+                    updateStats(result);
+                    
+                    // Show diff if enabled
+                    if (document.getElementById('showDiff').checked && previousResult) {
+                        showDiff(previousResult, result);
+                    }
+                    previousResult = result;
+                } else {
+                    resultDisplay.innerHTML = `<div class="error">
+                        <strong>Calculation Error:</strong><br>
+                        ${result.error}
+                    </div>`;
+                    document.getElementById('checksumDisplay').style.display = 'none';
+                    document.getElementById('statsGrid').style.display = 'none';
+                }
+            } catch (error) {
+                const resultDisplay = document.getElementById('resultDisplay');
+                
+                if (error instanceof SyntaxError) {
+                    resultDisplay.innerHTML = `<div class="error">
+                        <strong>JSON Syntax Error:</strong><br>
+                        Please check your input for valid JSON syntax.
+                    </div>`;
+                } else {
+                    resultDisplay.innerHTML = `<div class="error">
+                        <strong>Error:</strong><br>
+                        ${error.message}
+                    </div>`;
+                }
+                document.getElementById('checksumDisplay').style.display = 'none';
+                document.getElementById('statsGrid').style.display = 'none';
+            }
+        }
+        
+        // Display calculation result
+        function displayResult(result, duration) {
+            const resultDisplay = document.getElementById('resultDisplay');
+            
+            const formattedJson = JSON.stringify(result, null, 2);
+            resultDisplay.textContent = formattedJson;
+            
+            if (result.checksum) {
+                document.getElementById('checksumValue').textContent = result.checksum;
+                document.getElementById('checksumDisplay').style.display = 'block';
+            }
+            
+            if (duration > 0) {
+                resultDisplay.innerHTML += `\n\n<!-- Calculation completed in ${duration.toFixed(2)}ms -->`;
+            }
+        }
+        
+        // Update stats display
+        function updateStats(result) {
+            document.getElementById('statSubtotal').textContent = `$${result.subtotal || '0.00'}`;
+            document.getElementById('statModifiers').textContent = `$${result.modifierTotal || '0.00'}`;
+            document.getElementById('statTax').textContent = `$${result.retailTax || '0.00'}`;
+            document.getElementById('statTotal').textContent = `$${result.customerGrandTotal || '0.00'}`;
+            document.getElementById('statsGrid').style.display = 'grid';
+        }
+        
+        // Add to history
+        function addToHistory(input, result) {
+            const historyItem = {
+                timestamp: new Date().toISOString(),
+                input: input,
+                result: result,
+                fixtureName: currentFixture ? currentFixture.name : 'Custom Input'
+            };
+            
+            calculationHistory.unshift(historyItem);
+            
+            if (calculationHistory.length > 10) {
+                calculationHistory = calculationHistory.slice(0, 10);
+            }
+            
+            updateHistoryDisplay();
+        }
+        
+        // Update history display
+        function updateHistoryDisplay() {
+            const historyList = document.getElementById('historyList');
+            document.getElementById('historyCount').textContent = calculationHistory.length;
+            
+            if (calculationHistory.length === 0) {
+                historyList.innerHTML = `<div style="color: #888; text-align: center; padding: 20px;">
+                    No calculations yet. Run a calculation to see history.
+                </div>`;
+                return;
+            }
+            
+            historyList.innerHTML = calculationHistory.map((item, index) => `
+                <div class="history-item" onclick="loadHistoryItem(${index})">
+                    <div class="timestamp">${new Date(item.timestamp).toLocaleString()}</div>
+                    <div class="fixture-name">${item.fixtureName}</div>
+                    <div style="color: #888; margin-top: 5px;">
+                        Total: $${item.result.customerGrandTotal || '0.00'} | 
+                        Checksum: ${item.result.checksum ? item.result.checksum.substring(0, 8) + '...' : 'N/A'}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Load history item
+        function loadHistoryItem(index) {
+            const item = calculationHistory[index];
+            if (item) {
+                inputEditor.setValue(JSON.stringify(item.input, null, 2));
+                displayResult(item.result, 0);
+                updateStats(item.result);
+                showMessage(`Loaded calculation from ${new Date(item.timestamp).toLocaleTimeString()}`, 'success');
+            }
+        }
+        
+        // Show message
+        function showMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type;
+            messageDiv.textContent = message;
+            messageDiv.style.position = 'fixed';
+            messageDiv.style.top = '20px';
+            messageDiv.style.right = '20px';
+            messageDiv.style.zIndex = '10000';
+            messageDiv.style.maxWidth = '400px';
+            
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
+        
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            initializeEditor();
+            loadEngineInfo();
+            loadFixtures();
+            setupSliders();
+            
+            // Load saved scenarios from localStorage
+            const stored = localStorage.getItem('savedScenarios');
+            if (stored) {
+                savedScenarios = JSON.parse(stored);
+                updateSavedScenariosDropdown();
+            }
+            
+            // Setup file import handler
+            document.getElementById('importFile').addEventListener('change', handleFileImport);
+            
+            // Setup live mode toggle
+            document.getElementById('liveModeToggle').addEventListener('change', toggleLiveMode);
+            
+            // Set up keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                // Ctrl+Enter to calculate
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    runCalculation();
+                }
+                
+                // Ctrl+S to save scenario
+                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    e.preventDefault();
+                    document.getElementById('scenarioName').focus();
+                }
+                
+                // Numbers 1-8 for quick scenarios
+                if (e.altKey && e.key >= '1' && e.key <= '8') {
+                    const scenarios = Object.keys(quickScenarios);
+                    const index = parseInt(e.key) - 1;
+                    if (scenarios[index]) {
+                        applyQuickScenario(scenarios[index]);
+                    }
+                }
+            });
+            
+            // Auto-refresh engine status every 10 seconds
+            setInterval(loadEngineInfo, 10000);
+            
+            // Initial live mode setup
+            toggleLiveMode();
+        });
+    </script>
+</body>
+</html>

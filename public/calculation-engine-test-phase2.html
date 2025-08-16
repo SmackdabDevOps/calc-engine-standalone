@@ -1,0 +1,2282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pure Calculation Engine Test Interface - Phase 2</title>
+    
+    <!-- External Libraries -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/lint/lint.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/lint/lint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/lint/json-lint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsonlint/1.6.0/jsonlint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/brace-fold.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.min.css">
+    
+    <!-- Chart.js for Waterfall Visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Mermaid for Flow Diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: var(--gray-800);
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .engine-info {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .engine-badge {
+            background: var(--primary);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .panel-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gray-800);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-300);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        select {
+            padding: 8px 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .editor-container {
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .CodeMirror {
+            height: 400px;
+            font-size: 13px;
+        }
+
+        .result-container {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 15px;
+            min-height: 400px;
+            max-height: 600px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .checksum {
+            background: var(--gray-100);
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin-top: 10px;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .history-item:hover {
+            background: var(--gray-100);
+            transform: translateX(4px);
+        }
+
+        .history-time {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        .history-total {
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .error-message {
+            background: #fee;
+            border: 1px solid #fcc;
+            border-radius: 6px;
+            padding: 12px;
+            color: #c00;
+            margin-top: 10px;
+        }
+
+        .success-message {
+            background: #dfd;
+            border: 1px solid #cfc;
+            border-radius: 6px;
+            padding: 12px;
+            color: #060;
+            margin-top: 10px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--gray-300);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            animation: fadeIn 0.2s;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--gray-500);
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { 
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to { 
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-700);
+            margin-bottom: 5px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Warning Badge */
+        .warning-badge {
+            background: var(--warning);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* Success Badge */
+        .success-badge {
+            background: var(--success);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* Live Mode Indicator */
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: var(--success);
+            color: white;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            animation: pulse 2s infinite;
+        }
+
+        .live-indicator.inactive {
+            background: var(--gray-400);
+            animation: none;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Diff View Styles */
+        .diff-container {
+            font-family: monospace;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .diff-line {
+            padding: 2px 8px;
+            white-space: pre;
+        }
+
+        .diff-added {
+            background: #d4f4d4;
+            color: #22863a;
+        }
+
+        .diff-removed {
+            background: #ffd4d4;
+            color: #cb2431;
+        }
+
+        .diff-unchanged {
+            color: var(--gray-600);
+        }
+
+        /* Quick Scenario Buttons */
+        .quick-scenarios {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 10px;
+            background: var(--gray-50);
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .scenario-btn {
+            padding: 6px 12px;
+            background: white;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .scenario-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        /* Library Panel */
+        .library-panel {
+            background: var(--gray-50);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .library-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .library-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .library-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .library-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 6px;
+            margin-bottom: 6px;
+            cursor: pointer;
+        }
+
+        .library-item:hover {
+            background: var(--gray-100);
+        }
+
+        .library-item-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--gray-800);
+        }
+
+        .library-item-desc {
+            font-size: 11px;
+            color: var(--gray-500);
+        }
+
+        /* Sliders */
+        .slider-group {
+            padding: 15px;
+            background: var(--gray-50);
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .slider-label {
+            min-width: 100px;
+            font-size: 13px;
+            color: var(--gray-700);
+        }
+
+        .slider {
+            flex: 1;
+        }
+
+        .slider-value {
+            min-width: 60px;
+            text-align: right;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--gray-300);
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+        }
+
+        /* Phase 2 Additions */
+        .visualization-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .viz-tab {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-600);
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .viz-tab.active {
+            color: var(--primary);
+        }
+
+        .viz-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--primary);
+        }
+
+        .viz-content {
+            display: none;
+            padding: 20px;
+            background: var(--gray-50);
+            border-radius: 8px;
+        }
+
+        .viz-content.active {
+            display: block;
+        }
+
+        .waterfall-container {
+            width: 100%;
+            height: 400px;
+            position: relative;
+        }
+
+        .flow-diagram {
+            width: 100%;
+            min-height: 400px;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .conflict-analyzer {
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .conflict-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--warning);
+            background: #fff9e6;
+            border-radius: 4px;
+        }
+
+        .conflict-title {
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 5px;
+        }
+
+        .conflict-description {
+            font-size: 13px;
+            color: var(--gray-600);
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .comparison-panel {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .comparison-header {
+            font-weight: 600;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .performance-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .metric-card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .metric-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--gray-200);
+            border-radius: 4px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .metric-fill {
+            height: 100%;
+            background: var(--primary);
+            transition: width 0.3s;
+        }
+
+        /* Smart Scenario Generator */
+        .prompt-generator {
+            background: var(--gray-50);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .prompt-template {
+            background: white;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .prompt-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .copy-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .copy-btn.copied {
+            background: var(--success);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                <span>🧮</span>
+                Pure Calculation Engine Test Interface - Phase 2
+            </h1>
+            <div class="engine-info">
+                <div class="live-indicator" id="liveIndicator">
+                    <span class="live-dot"></span>
+                    <span>Live Mode</span>
+                </div>
+                <div class="engine-badge" id="engineVersion">Loading...</div>
+                <div class="engine-badge" id="connectionStatus">Disconnected</div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Input Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">
+                        <span>📝</span>
+                        Input Configuration
+                    </h2>
+                    <button class="btn btn-primary" onclick="toggleLiveMode()">
+                        <span id="liveModeToggle">Enable Live Mode</span>
+                    </button>
+                </div>
+
+                <!-- Quick Scenarios -->
+                <div class="quick-scenarios" id="quickScenarios">
+                    <button class="scenario-btn" onclick="applyQuickScenario('simple')">Simple Tax</button>
+                    <button class="scenario-btn" onclick="applyQuickScenario('discount')">10% Discount</button>
+                    <button class="scenario-btn" onclick="applyQuickScenario('complex')">Complex Multi</button>
+                    <button class="scenario-btn" onclick="applyQuickScenario('margin')">Margin Test</button>
+                    <button class="scenario-btn" onclick="applyQuickScenario('empty')">Empty Order</button>
+                </div>
+
+                <!-- Scenario Library -->
+                <div class="library-panel">
+                    <div class="library-header">
+                        <span class="library-title">📚 Scenario Library</span>
+                        <button class="btn btn-secondary" onclick="saveScenario()">Save Current</button>
+                    </div>
+                    <div class="library-list" id="scenarioLibrary"></div>
+                </div>
+
+                <!-- Responsive Sliders -->
+                <div class="slider-group">
+                    <div class="slider-row">
+                        <span class="slider-label">Quantity:</span>
+                        <input type="range" class="slider" id="quantitySlider" min="1" max="100" value="1">
+                        <span class="slider-value" id="quantityValue">1</span>
+                    </div>
+                    <div class="slider-row">
+                        <span class="slider-label">Unit Price:</span>
+                        <input type="range" class="slider" id="priceSlider" min="1" max="1000" value="100">
+                        <span class="slider-value" id="priceValue">$100</span>
+                    </div>
+                    <div class="slider-row">
+                        <span class="slider-label">Tax Rate:</span>
+                        <input type="range" class="slider" id="taxSlider" min="0" max="30" value="10" step="0.5">
+                        <span class="slider-value" id="taxValue">10%</span>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <select id="fixtureSelect">
+                        <option value="">Select a fixture...</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="loadFixture()">Load Fixture</button>
+                    <button class="btn btn-secondary" onclick="validateInput()">Validate</button>
+                    <button class="btn btn-secondary" onclick="clearInput()">Clear</button>
+                    <button class="btn btn-warning" onclick="showModifierBuilder()">+ Add Modifier</button>
+                </div>
+
+                <div class="editor-container">
+                    <textarea id="inputEditor"></textarea>
+                </div>
+
+                <button class="btn btn-primary" onclick="calculate()" style="width: 100%; font-size: 16px; padding: 12px;">
+                    🧮 Calculate
+                </button>
+            </div>
+
+            <!-- Output Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">
+                        <span>📊</span>
+                        Calculation Result
+                    </h2>
+                    <button class="btn btn-secondary" onclick="toggleDiffView()">
+                        <span id="diffToggle">Show Diff</span>
+                    </button>
+                </div>
+
+                <!-- Visualization Tabs -->
+                <div class="visualization-tabs">
+                    <button class="viz-tab active" onclick="switchVizTab('result')">Result</button>
+                    <button class="viz-tab" onclick="switchVizTab('waterfall')">Waterfall</button>
+                    <button class="viz-tab" onclick="switchVizTab('flow')">Flow Diagram</button>
+                    <button class="viz-tab" onclick="switchVizTab('conflicts')">Conflicts</button>
+                    <button class="viz-tab" onclick="switchVizTab('comparison')">Compare</button>
+                    <button class="viz-tab" onclick="switchVizTab('performance')">Performance</button>
+                    <button class="viz-tab" onclick="switchVizTab('generator')">AI Prompt</button>
+                </div>
+
+                <!-- Result View -->
+                <div class="viz-content active" id="resultView">
+                    <div class="result-container" id="result">
+                        Results will appear here...
+                    </div>
+                    <div class="checksum" id="checksum" style="display: none;">
+                        <strong>Checksum:</strong> <span id="checksumValue"></span>
+                    </div>
+                    <div class="stats-grid" id="stats"></div>
+                </div>
+
+                <!-- Waterfall View -->
+                <div class="viz-content" id="waterfallView">
+                    <div class="waterfall-container">
+                        <canvas id="waterfallChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Flow Diagram View -->
+                <div class="viz-content" id="flowView">
+                    <div class="flow-diagram" id="flowDiagram"></div>
+                </div>
+
+                <!-- Conflicts View -->
+                <div class="viz-content" id="conflictsView">
+                    <div class="conflict-analyzer" id="conflictAnalyzer">
+                        <p>No conflicts detected</p>
+                    </div>
+                </div>
+
+                <!-- Comparison View -->
+                <div class="viz-content" id="comparisonView">
+                    <div class="comparison-grid" id="comparisonGrid">
+                        <div class="comparison-panel">
+                            <div class="comparison-header">Current Calculation</div>
+                            <div id="currentComparison">No data</div>
+                        </div>
+                        <div class="comparison-panel">
+                            <div class="comparison-header">Previous Calculation</div>
+                            <div id="previousComparison">No data</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance View -->
+                <div class="viz-content" id="performanceView">
+                    <div class="performance-metrics" id="performanceMetrics">
+                        <div class="metric-card">
+                            <div class="metric-label">Calculation Time</div>
+                            <div class="metric-value" id="calcTime">0ms</div>
+                            <div class="metric-bar">
+                                <div class="metric-fill" id="calcTimeBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Line Items Processed</div>
+                            <div class="metric-value" id="itemsProcessed">0</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Modifiers Applied</div>
+                            <div class="metric-value" id="modifiersApplied">0</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Memory Estimate</div>
+                            <div class="metric-value" id="memoryEstimate">0 KB</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Prompt Generator View -->
+                <div class="viz-content" id="generatorView">
+                    <div class="prompt-generator">
+                        <h3>AI Test Scenario Generator Prompt</h3>
+                        <p style="margin-bottom: 15px; color: var(--gray-600);">
+                            Copy this prompt to your AI assistant to generate test scenarios:
+                        </p>
+                        <div class="prompt-template" id="aiPromptTemplate">
+Generate a comprehensive test scenario for a calculation engine with the following structure:
+
+CONTEXT:
+- Engine: Pure Calculation Engine v3.0.0
+- Precision: Q7 intermediate (7 decimals), Q2 final (2 decimals)
+- Current Configuration: <span id="promptConfig">Loading...</span>
+
+REQUIREMENTS:
+1. Create a realistic business scenario with:
+   - Multiple line items (3-5 items)
+   - Various modifier types (percentage, fixed, margin)
+   - Different tax settings (taxable, non_taxable, use_tax)
+   - Complex dependencies between modifiers
+
+2. Include edge cases for:
+   - High-precision calculations
+   - Modifier conflicts
+   - Tax inheritance (INHERIT)
+   - Chain priority ordering
+
+3. Expected outcomes:
+   - Subtotal calculation
+   - Modifier impacts
+   - Tax calculations
+   - Grand total
+
+FORMAT:
+Provide the test scenario as a JSON object with:
+```json
+{
+  "lineItems": [...],
+  "modifiers": [...],
+  "dependencies": [...],
+  "config": {...}
+}
+```
+
+CURRENT TEST FOCUS:
+<span id="promptFocus">General calculation testing</span>
+
+Please generate a test scenario that validates: <span id="promptValidation">mathematical correctness and deterministic behavior</span>
+                        </div>
+                        <div class="prompt-actions">
+                            <button class="btn btn-primary copy-btn" onclick="copyPrompt()">
+                                <span>📋</span>
+                                <span id="copyText">Copy Prompt</span>
+                            </button>
+                            <button class="btn btn-secondary" onclick="customizePrompt()">Customize</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">
+                    <span>📜</span>
+                    Calculation History
+                </h2>
+                <button class="btn btn-secondary" onclick="clearHistory()">Clear</button>
+            </div>
+            <div id="history"></div>
+        </div>
+    </div>
+
+    <!-- Modifier Builder Modal -->
+    <div class="modal" id="modifierModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Add New Modifier</h3>
+                <button class="modal-close" onclick="closeModifierBuilder()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Modifier ID</label>
+                        <input type="text" class="form-input" id="modifierId" placeholder="e.g., discount-1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Type</label>
+                        <select class="form-select" id="modifierType" onchange="updateModifierForm()">
+                            <option value="percentage">Percentage</option>
+                            <option value="fixed">Fixed Amount</option>
+                            <option value="margin">Margin</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Value</label>
+                        <input type="number" class="form-input" id="modifierValue" placeholder="e.g., -10 for discount">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Application Type</label>
+                        <select class="form-select" id="applicationType">
+                            <option value="pre_tax">Pre-Tax</option>
+                            <option value="post_tax">Post-Tax</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Category</label>
+                        <input type="text" class="form-input" id="modifierCategory" placeholder="e.g., DISCOUNT">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tax Setting</label>
+                        <select class="form-select" id="modifierTaxSetting">
+                            <option value="inherit">Inherit from Line Item</option>
+                            <option value="taxable">Taxable</option>
+                            <option value="non_taxable">Non-Taxable</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Chain Priority</label>
+                        <input type="number" class="form-input" id="chainPriority" value="1000" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Display Mode</label>
+                        <select class="form-select" id="displayMode">
+                            <option value="VISIBLE">Visible</option>
+                            <option value="HIDDEN">Hidden</option>
+                            <option value="SUMMARY">Summary Only</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Affects Quantity</label>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="affectsQuantity">
+                        <label for="affectsQuantity">Modifier value is multiplied by line item quantity</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Product ID (optional)</label>
+                    <input type="text" class="form-input" id="modifierProductId" placeholder="Apply to specific product">
+                </div>
+
+                <div id="conflictWarning" style="display: none;" class="error-message">
+                    <strong>⚠️ Potential Conflicts Detected:</strong>
+                    <ul id="conflictList"></ul>
+                </div>
+
+                <div id="validationErrors" style="display: none;" class="error-message">
+                    <strong>❌ Validation Errors:</strong>
+                    <ul id="errorList"></ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModifierBuilder()">Cancel</button>
+                <button class="btn btn-primary" onclick="addModifier()">Add Modifier</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Mermaid
+        mermaid.initialize({ startOnLoad: true });
+
+        // Global variables
+        let editor;
+        let history = [];
+        let currentResult = null;
+        let previousResult = null;
+        let savedScenarios = [];
+        let liveMode = false;
+        let liveDebounceTimer = null;
+        let waterfallChart = null;
+        let performanceData = {};
+
+        // Initialize CodeMirror
+        document.addEventListener('DOMContentLoaded', () => {
+            editor = CodeMirror.fromTextArea(document.getElementById('inputEditor'), {
+                mode: 'application/json',
+                theme: 'monokai',
+                lineNumbers: true,
+                lineWrapping: true,
+                gutters: ['CodeMirror-lint-markers', 'CodeMirror-foldgutter'],
+                lint: true,
+                foldGutter: true,
+                extraKeys: {
+                    'Ctrl-Enter': calculate,
+                    'Cmd-Enter': calculate
+                }
+            });
+
+            // Set default input
+            const defaultInput = {
+                lineItems: [
+                    {
+                        id: "line-1",
+                        unitPrice: "100.00",
+                        quantity: 1,
+                        tax_setting: "taxable"
+                    }
+                ],
+                modifiers: [],
+                dependencies: [],
+                config: {
+                    tax_rate: 0.10,
+                    tax_mode: "RETAIL",
+                    schemaVersion: "1.0.0"
+                }
+            };
+
+            editor.setValue(JSON.stringify(defaultInput, null, 2));
+
+            // Load engine info
+            loadEngineInfo();
+            loadFixtures();
+            loadSavedScenarios();
+            
+            // Setup sliders
+            setupSliders();
+
+            // Live mode change handler
+            editor.on('change', () => {
+                if (liveMode) {
+                    clearTimeout(liveDebounceTimer);
+                    liveDebounceTimer = setTimeout(() => {
+                        calculate();
+                    }, 500);
+                }
+            });
+
+            // Initialize waterfall chart canvas
+            const ctx = document.getElementById('waterfallChart').getContext('2d');
+            waterfallChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: []
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Calculation Waterfall'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+
+        // Setup sliders
+        function setupSliders() {
+            const quantitySlider = document.getElementById('quantitySlider');
+            const priceSlider = document.getElementById('priceSlider');
+            const taxSlider = document.getElementById('taxSlider');
+
+            quantitySlider.addEventListener('input', (e) => {
+                document.getElementById('quantityValue').textContent = e.target.value;
+                updateInputFromSliders();
+            });
+
+            priceSlider.addEventListener('input', (e) => {
+                document.getElementById('priceValue').textContent = '$' + e.target.value;
+                updateInputFromSliders();
+            });
+
+            taxSlider.addEventListener('input', (e) => {
+                document.getElementById('taxValue').textContent = e.target.value + '%';
+                updateInputFromSliders();
+            });
+        }
+
+        // Update input from sliders
+        function updateInputFromSliders() {
+            try {
+                const input = JSON.parse(editor.getValue());
+                
+                if (input.lineItems && input.lineItems.length > 0) {
+                    input.lineItems[0].quantity = parseInt(document.getElementById('quantitySlider').value);
+                    input.lineItems[0].unitPrice = document.getElementById('priceSlider').value + ".00";
+                }
+                
+                if (input.config) {
+                    input.config.tax_rate = parseFloat(document.getElementById('taxSlider').value) / 100;
+                }
+
+                editor.setValue(JSON.stringify(input, null, 2));
+            } catch (e) {
+                console.error('Failed to update from sliders:', e);
+            }
+        }
+
+        // Toggle live mode
+        function toggleLiveMode() {
+            liveMode = !liveMode;
+            const indicator = document.getElementById('liveIndicator');
+            const toggle = document.getElementById('liveModeToggle');
+            
+            if (liveMode) {
+                indicator.classList.remove('inactive');
+                toggle.textContent = 'Disable Live Mode';
+            } else {
+                indicator.classList.add('inactive');
+                toggle.textContent = 'Enable Live Mode';
+            }
+        }
+
+        // Toggle diff view
+        function toggleDiffView() {
+            const toggle = document.getElementById('diffToggle');
+            const resultContainer = document.getElementById('result');
+            
+            if (toggle.textContent === 'Show Diff') {
+                if (previousResult && currentResult) {
+                    showDiff(previousResult, currentResult);
+                    toggle.textContent = 'Hide Diff';
+                } else {
+                    alert('Need at least 2 calculations to show diff');
+                }
+            } else {
+                if (currentResult) {
+                    resultContainer.textContent = JSON.stringify(currentResult, null, 2);
+                }
+                toggle.textContent = 'Show Diff';
+            }
+        }
+
+        // Show diff between two results
+        function showDiff(oldResult, newResult) {
+            const container = document.getElementById('result');
+            container.innerHTML = '';
+            
+            const diff = document.createElement('div');
+            diff.className = 'diff-container';
+            
+            const oldLines = JSON.stringify(oldResult, null, 2).split('\n');
+            const newLines = JSON.stringify(newResult, null, 2).split('\n');
+            
+            const maxLines = Math.max(oldLines.length, newLines.length);
+            
+            for (let i = 0; i < maxLines; i++) {
+                const oldLine = oldLines[i] || '';
+                const newLine = newLines[i] || '';
+                
+                const line = document.createElement('div');
+                line.className = 'diff-line';
+                
+                if (oldLine !== newLine) {
+                    if (oldLine && !newLine) {
+                        line.className += ' diff-removed';
+                        line.textContent = '- ' + oldLine;
+                    } else if (!oldLine && newLine) {
+                        line.className += ' diff-added';
+                        line.textContent = '+ ' + newLine;
+                    } else {
+                        // Changed line - show both
+                        const removedLine = document.createElement('div');
+                        removedLine.className = 'diff-line diff-removed';
+                        removedLine.textContent = '- ' + oldLine;
+                        diff.appendChild(removedLine);
+                        
+                        line.className += ' diff-added';
+                        line.textContent = '+ ' + newLine;
+                    }
+                } else {
+                    line.className += ' diff-unchanged';
+                    line.textContent = '  ' + oldLine;
+                }
+                
+                diff.appendChild(line);
+            }
+            
+            container.appendChild(diff);
+        }
+
+        // Apply quick scenario
+        function applyQuickScenario(type) {
+            const scenarios = {
+                simple: {
+                    lineItems: [
+                        {
+                            id: "line-1",
+                            unitPrice: "100.00",
+                            quantity: 1,
+                            tax_setting: "taxable"
+                        }
+                    ],
+                    modifiers: [],
+                    dependencies: [],
+                    config: {
+                        tax_rate: 0.10,
+                        tax_mode: "RETAIL",
+                        schemaVersion: "1.0.0"
+                    }
+                },
+                discount: {
+                    lineItems: [
+                        {
+                            id: "line-1",
+                            unitPrice: "100.00",
+                            quantity: 2,
+                            tax_setting: "taxable"
+                        }
+                    ],
+                    modifiers: [
+                        {
+                            id: "discount-1",
+                            modifier_type: "percentage",
+                            value: -10,
+                            application_type: "pre_tax",
+                            chain_priority: 100
+                        }
+                    ],
+                    dependencies: [],
+                    config: {
+                        tax_rate: 0.10,
+                        tax_mode: "RETAIL",
+                        schemaVersion: "1.0.0"
+                    }
+                },
+                complex: {
+                    lineItems: [
+                        {
+                            id: "line-1",
+                            unitPrice: "150.00",
+                            quantity: 2,
+                            tax_setting: "taxable"
+                        },
+                        {
+                            id: "line-2",
+                            unitPrice: "75.00",
+                            quantity: 3,
+                            tax_setting: "non_taxable"
+                        }
+                    ],
+                    modifiers: [
+                        {
+                            id: "discount-1",
+                            modifier_type: "percentage",
+                            value: -15,
+                            application_type: "pre_tax",
+                            chain_priority: 100
+                        },
+                        {
+                            id: "fee-1",
+                            modifier_type: "fixed",
+                            value: 25,
+                            application_type: "post_tax",
+                            chain_priority: 200
+                        }
+                    ],
+                    dependencies: [],
+                    config: {
+                        tax_rate: 0.0875,
+                        tax_mode: "RETAIL",
+                        schemaVersion: "1.0.0"
+                    }
+                },
+                margin: {
+                    lineItems: [
+                        {
+                            id: "line-1",
+                            unitPrice: "100.00",
+                            quantity: 1,
+                            cost: "60.00",
+                            tax_setting: "taxable"
+                        }
+                    ],
+                    modifiers: [
+                        {
+                            id: "margin-1",
+                            modifier_type: "margin",
+                            value: 30,
+                            application_type: "pre_tax",
+                            chain_priority: 50
+                        }
+                    ],
+                    dependencies: [],
+                    config: {
+                        tax_rate: 0.10,
+                        tax_mode: "RETAIL",
+                        schemaVersion: "1.0.0"
+                    }
+                },
+                empty: {
+                    lineItems: [],
+                    modifiers: [],
+                    dependencies: [],
+                    config: {
+                        tax_rate: 0.10,
+                        tax_mode: "RETAIL",
+                        schemaVersion: "1.0.0"
+                    }
+                }
+            };
+
+            if (scenarios[type]) {
+                editor.setValue(JSON.stringify(scenarios[type], null, 2));
+                if (liveMode) {
+                    calculate();
+                }
+            }
+        }
+
+        // Save scenario
+        function saveScenario() {
+            const name = prompt('Enter a name for this scenario:');
+            if (!name) return;
+
+            const description = prompt('Enter a description (optional):');
+            
+            try {
+                const input = JSON.parse(editor.getValue());
+                const scenario = {
+                    id: Date.now().toString(),
+                    name,
+                    description: description || '',
+                    input,
+                    timestamp: new Date().toISOString()
+                };
+
+                savedScenarios.push(scenario);
+                localStorage.setItem('calculationScenarios', JSON.stringify(savedScenarios));
+                loadSavedScenarios();
+
+                showSuccess('Scenario saved successfully!');
+            } catch (e) {
+                showError('Failed to save scenario: ' + e.message);
+            }
+        }
+
+        // Load saved scenarios
+        function loadSavedScenarios() {
+            const stored = localStorage.getItem('calculationScenarios');
+            if (stored) {
+                savedScenarios = JSON.parse(stored);
+            }
+
+            const libraryList = document.getElementById('scenarioLibrary');
+            libraryList.innerHTML = '';
+
+            savedScenarios.forEach(scenario => {
+                const item = document.createElement('div');
+                item.className = 'library-item';
+                item.onclick = () => loadSavedScenario(scenario.id);
+                
+                item.innerHTML = `
+                    <div>
+                        <div class="library-item-name">${scenario.name}</div>
+                        <div class="library-item-desc">${scenario.description || 'No description'}</div>
+                    </div>
+                    <button class="btn btn-danger" onclick="event.stopPropagation(); deleteScenario('${scenario.id}')" style="padding: 4px 8px; font-size: 12px;">×</button>
+                `;
+                
+                libraryList.appendChild(item);
+            });
+
+            if (savedScenarios.length === 0) {
+                libraryList.innerHTML = '<div style="padding: 10px; color: var(--gray-500); text-align: center;">No saved scenarios</div>';
+            }
+        }
+
+        // Load saved scenario
+        function loadSavedScenario(id) {
+            const scenario = savedScenarios.find(s => s.id === id);
+            if (scenario) {
+                editor.setValue(JSON.stringify(scenario.input, null, 2));
+                if (liveMode) {
+                    calculate();
+                }
+            }
+        }
+
+        // Delete scenario
+        function deleteScenario(id) {
+            if (confirm('Delete this scenario?')) {
+                savedScenarios = savedScenarios.filter(s => s.id !== id);
+                localStorage.setItem('calculationScenarios', JSON.stringify(savedScenarios));
+                loadSavedScenarios();
+            }
+        }
+
+        // Switch visualization tab
+        function switchVizTab(tab) {
+            // Update tabs
+            document.querySelectorAll('.viz-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update content
+            document.querySelectorAll('.viz-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(tab + 'View').classList.add('active');
+
+            // Special handling for different views
+            if (tab === 'waterfall' && currentResult) {
+                updateWaterfallChart(currentResult);
+            } else if (tab === 'flow' && currentResult) {
+                updateFlowDiagram(currentResult);
+            } else if (tab === 'conflicts') {
+                analyzeConflicts();
+            } else if (tab === 'comparison') {
+                updateComparison();
+            } else if (tab === 'performance') {
+                updatePerformanceMetrics();
+            } else if (tab === 'generator') {
+                updatePromptGenerator();
+            }
+        }
+
+        // Update waterfall chart
+        function updateWaterfallChart(result) {
+            if (!waterfallChart) return;
+
+            const data = [];
+            const labels = [];
+            const colors = [];
+
+            // Base subtotal
+            data.push(parseFloat(result.subtotal));
+            labels.push('Subtotal');
+            colors.push('rgba(37, 99, 235, 0.8)');
+
+            // Modifiers
+            if (result.adjustments && result.adjustments.length > 0) {
+                result.adjustments.forEach(adj => {
+                    data.push(parseFloat(adj.amount));
+                    labels.push(adj.id || 'Modifier');
+                    colors.push(parseFloat(adj.amount) < 0 ? 'rgba(239, 68, 68, 0.8)' : 'rgba(16, 185, 129, 0.8)');
+                });
+            }
+
+            // Tax
+            if (parseFloat(result.retailTax) > 0) {
+                data.push(parseFloat(result.retailTax));
+                labels.push('Tax');
+                colors.push('rgba(245, 158, 11, 0.8)');
+            }
+
+            // Update chart
+            waterfallChart.data.labels = labels;
+            waterfallChart.data.datasets = [{
+                label: 'Amount',
+                data: data,
+                backgroundColor: colors,
+                borderColor: colors.map(c => c.replace('0.8', '1')),
+                borderWidth: 1
+            }];
+            waterfallChart.update();
+        }
+
+        // Update flow diagram
+        function updateFlowDiagram(result) {
+            const container = document.getElementById('flowDiagram');
+            
+            const diagram = `
+            <div class="mermaid">
+            graph TD
+                A[Line Items] --> B[Calculate Subtotal]
+                B --> C{Has Modifiers?}
+                C -->|Yes| D[Apply Pre-Tax Modifiers]
+                C -->|No| E[Calculate Tax]
+                D --> E
+                E --> F{Has Post-Tax Modifiers?}
+                F -->|Yes| G[Apply Post-Tax Modifiers]
+                F -->|No| H[Grand Total]
+                G --> H
+                
+                B -.->|$${result.subtotal}| B
+                E -.->|$${result.retailTax}| E
+                H -.->|$${result.customerGrandTotal}| H
+            </div>
+            `;
+            
+            container.innerHTML = diagram;
+            mermaid.init(undefined, container.querySelector('.mermaid'));
+        }
+
+        // Analyze conflicts
+        function analyzeConflicts() {
+            const container = document.getElementById('conflictAnalyzer');
+            container.innerHTML = '';
+
+            try {
+                const input = JSON.parse(editor.getValue());
+                const conflicts = [];
+
+                // Check for duplicate IDs
+                const modifierIds = new Set();
+                input.modifiers?.forEach(mod => {
+                    if (modifierIds.has(mod.id)) {
+                        conflicts.push({
+                            type: 'Duplicate ID',
+                            description: `Modifier ID "${mod.id}" is used multiple times`
+                        });
+                    }
+                    modifierIds.add(mod.id);
+                });
+
+                // Check for conflicting priorities
+                const priorityGroups = {};
+                input.modifiers?.forEach(mod => {
+                    const priority = mod.chain_priority || 1000;
+                    if (!priorityGroups[priority]) {
+                        priorityGroups[priority] = [];
+                    }
+                    priorityGroups[priority].push(mod.id);
+                });
+
+                Object.entries(priorityGroups).forEach(([priority, ids]) => {
+                    if (ids.length > 1) {
+                        conflicts.push({
+                            type: 'Same Priority',
+                            description: `Modifiers ${ids.join(', ')} have the same priority (${priority})`
+                        });
+                    }
+                });
+
+                // Check for margin conflicts
+                const marginModifiers = input.modifiers?.filter(m => m.modifier_type === 'margin') || [];
+                if (marginModifiers.length > 1) {
+                    conflicts.push({
+                        type: 'Multiple Margins',
+                        description: 'Multiple margin modifiers may conflict'
+                    });
+                }
+
+                // Display conflicts
+                if (conflicts.length === 0) {
+                    container.innerHTML = '<p style="color: var(--success);">✓ No conflicts detected</p>';
+                } else {
+                    conflicts.forEach(conflict => {
+                        const item = document.createElement('div');
+                        item.className = 'conflict-item';
+                        item.innerHTML = `
+                            <div class="conflict-title">${conflict.type}</div>
+                            <div class="conflict-description">${conflict.description}</div>
+                        `;
+                        container.appendChild(item);
+                    });
+                }
+            } catch (e) {
+                container.innerHTML = '<p style="color: var(--danger);">Error analyzing conflicts</p>';
+            }
+        }
+
+        // Update comparison view
+        function updateComparison() {
+            const currentDiv = document.getElementById('currentComparison');
+            const previousDiv = document.getElementById('previousComparison');
+
+            if (currentResult) {
+                currentDiv.innerHTML = `
+                    <div style="font-family: monospace; font-size: 12px;">
+                        <div>Subtotal: $${currentResult.subtotal}</div>
+                        <div>Modifiers: $${currentResult.modifierTotal}</div>
+                        <div>Tax: $${currentResult.retailTax}</div>
+                        <div style="font-weight: bold; margin-top: 10px;">Total: $${currentResult.customerGrandTotal}</div>
+                    </div>
+                `;
+            }
+
+            if (previousResult) {
+                previousDiv.innerHTML = `
+                    <div style="font-family: monospace; font-size: 12px;">
+                        <div>Subtotal: $${previousResult.subtotal}</div>
+                        <div>Modifiers: $${previousResult.modifierTotal}</div>
+                        <div>Tax: $${previousResult.retailTax}</div>
+                        <div style="font-weight: bold; margin-top: 10px;">Total: $${previousResult.customerGrandTotal}</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Update performance metrics
+        function updatePerformanceMetrics() {
+            if (performanceData.calculationTime) {
+                document.getElementById('calcTime').textContent = performanceData.calculationTime + 'ms';
+                const percentage = Math.min((performanceData.calculationTime / 100) * 100, 100);
+                document.getElementById('calcTimeBar').style.width = percentage + '%';
+            }
+
+            if (performanceData.lineItemCount !== undefined) {
+                document.getElementById('itemsProcessed').textContent = performanceData.lineItemCount;
+            }
+
+            if (performanceData.modifierCount !== undefined) {
+                document.getElementById('modifiersApplied').textContent = performanceData.modifierCount;
+            }
+
+            if (performanceData.memoryEstimate) {
+                document.getElementById('memoryEstimate').textContent = performanceData.memoryEstimate;
+            }
+        }
+
+        // Update prompt generator
+        function updatePromptGenerator() {
+            try {
+                const input = JSON.parse(editor.getValue());
+                const configStr = JSON.stringify(input.config, null, 2);
+                document.getElementById('promptConfig').textContent = configStr;
+                
+                // Update focus based on current input
+                let focus = 'General calculation testing';
+                if (input.modifiers?.some(m => m.modifier_type === 'margin')) {
+                    focus = 'Margin calculation and profit targeting';
+                } else if (input.config?.tax_mode === 'USE_TAX') {
+                    focus = 'Use tax calculation and compliance';
+                } else if (input.modifiers?.length > 3) {
+                    focus = 'Complex modifier interactions and dependencies';
+                }
+                document.getElementById('promptFocus').textContent = focus;
+                
+                // Update validation requirements
+                let validation = 'mathematical correctness and deterministic behavior';
+                if (input.dependencies?.length > 0) {
+                    validation = 'dependency resolution and calculation order';
+                }
+                document.getElementById('promptValidation').textContent = validation;
+            } catch (e) {
+                console.error('Failed to update prompt generator:', e);
+            }
+        }
+
+        // Copy prompt to clipboard
+        function copyPrompt() {
+            const promptText = document.getElementById('aiPromptTemplate').textContent;
+            navigator.clipboard.writeText(promptText).then(() => {
+                const copyBtn = document.getElementById('copyText');
+                copyBtn.textContent = 'Copied!';
+                copyBtn.parentElement.classList.add('copied');
+                setTimeout(() => {
+                    copyBtn.textContent = 'Copy Prompt';
+                    copyBtn.parentElement.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy prompt');
+            });
+        }
+
+        // Customize prompt
+        function customizePrompt() {
+            alert('Prompt customization coming in Phase 3!');
+        }
+
+        // Load engine info
+        async function loadEngineInfo() {
+            try {
+                const response = await fetch('http://localhost:3333/api/engine/info');
+                const data = await response.json();
+                
+                document.getElementById('engineVersion').textContent = `v${data.version}`;
+                document.getElementById('connectionStatus').textContent = 'Connected';
+                document.getElementById('connectionStatus').style.background = 'var(--success)';
+            } catch (error) {
+                document.getElementById('engineVersion').textContent = 'Error';
+                document.getElementById('connectionStatus').textContent = 'Disconnected';
+                document.getElementById('connectionStatus').style.background = 'var(--danger)';
+            }
+        }
+
+        // Load fixtures
+        async function loadFixtures() {
+            try {
+                const response = await fetch('http://localhost:3333/api/engine/fixtures');
+                const fixtures = await response.json();
+                
+                const select = document.getElementById('fixtureSelect');
+                select.innerHTML = '<option value="">Select a fixture...</option>';
+                
+                fixtures.forEach(fixture => {
+                    const option = document.createElement('option');
+                    option.value = fixture.id;
+                    option.textContent = fixture.name;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Failed to load fixtures:', error);
+            }
+        }
+
+        // Load selected fixture
+        async function loadFixture() {
+            const select = document.getElementById('fixtureSelect');
+            const fixtureId = select.value;
+            
+            if (!fixtureId) {
+                alert('Please select a fixture');
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:3333/api/engine/fixtures/${fixtureId}`);
+                const fixture = await response.json();
+                
+                editor.setValue(JSON.stringify(fixture.input, null, 2));
+                
+                if (liveMode) {
+                    calculate();
+                }
+            } catch (error) {
+                showError('Failed to load fixture: ' + error.message);
+            }
+        }
+
+        // Validate input
+        async function validateInput() {
+            try {
+                const input = JSON.parse(editor.getValue());
+                
+                const response = await fetch('http://localhost:3333/api/engine/validate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(input)
+                });
+
+                const result = await response.json();
+                
+                if (result.valid) {
+                    showSuccess('Input is valid!');
+                } else {
+                    showError('Validation failed: ' + (result.errors || ['Unknown error']).join(', '));
+                }
+            } catch (error) {
+                showError('Invalid JSON: ' + error.message);
+            }
+        }
+
+        // Clear input
+        function clearInput() {
+            const defaultInput = {
+                lineItems: [],
+                modifiers: [],
+                dependencies: [],
+                config: {
+                    tax_rate: 0.10,
+                    tax_mode: "RETAIL",
+                    schemaVersion: "1.0.0"
+                }
+            };
+            
+            editor.setValue(JSON.stringify(defaultInput, null, 2));
+        }
+
+        // Calculate
+        async function calculate() {
+            const startTime = performance.now();
+            
+            try {
+                const input = JSON.parse(editor.getValue());
+                
+                const response = await fetch('http://localhost:3333/api/engine/calculate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(input)
+                });
+
+                const result = await response.json();
+                const endTime = performance.now();
+                
+                if (response.ok) {
+                    // Update performance data
+                    performanceData = {
+                        calculationTime: Math.round(endTime - startTime),
+                        lineItemCount: input.lineItems?.length || 0,
+                        modifierCount: input.modifiers?.length || 0,
+                        memoryEstimate: (JSON.stringify(result).length / 1024).toFixed(2) + ' KB'
+                    };
+                    
+                    // Store previous result for diff
+                    if (currentResult) {
+                        previousResult = currentResult;
+                    }
+                    currentResult = result;
+                    
+                    displayResult(result);
+                    addToHistory(result);
+                    
+                    // Update visualizations if active
+                    const activeTab = document.querySelector('.viz-tab.active');
+                    if (activeTab) {
+                        const tabName = activeTab.textContent.toLowerCase().replace(' ', '');
+                        if (tabName === 'waterfall') {
+                            updateWaterfallChart(result);
+                        } else if (tabName === 'flow') {
+                            updateFlowDiagram(result);
+                        }
+                    }
+                } else {
+                    showError(result.error || 'Calculation failed');
+                }
+            } catch (error) {
+                showError('Error: ' + error.message);
+            }
+        }
+
+        // Display result
+        function displayResult(result) {
+            const resultContainer = document.getElementById('result');
+            resultContainer.textContent = JSON.stringify(result, null, 2);
+            
+            // Display checksum
+            if (result.checksum) {
+                document.getElementById('checksum').style.display = 'block';
+                document.getElementById('checksumValue').textContent = result.checksum;
+            }
+            
+            // Display stats
+            const statsContainer = document.getElementById('stats');
+            statsContainer.innerHTML = '';
+            
+            const stats = [
+                { label: 'Subtotal', value: '$' + result.subtotal },
+                { label: 'Modifiers', value: '$' + result.modifierTotal },
+                { label: 'Tax', value: '$' + result.retailTax },
+                { label: 'Grand Total', value: '$' + result.customerGrandTotal }
+            ];
+            
+            stats.forEach(stat => {
+                const card = document.createElement('div');
+                card.className = 'stat-card';
+                card.innerHTML = `
+                    <div class="stat-label">${stat.label}</div>
+                    <div class="stat-value">${stat.value}</div>
+                `;
+                statsContainer.appendChild(card);
+            });
+        }
+
+        // Add to history
+        function addToHistory(result) {
+            const historyItem = {
+                timestamp: new Date(),
+                total: result.customerGrandTotal,
+                input: editor.getValue(),
+                result: result
+            };
+            
+            history.unshift(historyItem);
+            history = history.slice(0, 10); // Keep only last 10
+            
+            displayHistory();
+        }
+
+        // Display history
+        function displayHistory() {
+            const historyContainer = document.getElementById('history');
+            historyContainer.innerHTML = '';
+            
+            history.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.onclick = () => replayHistory(index);
+                
+                div.innerHTML = `
+                    <div>
+                        <div class="history-time">${item.timestamp.toLocaleTimeString()}</div>
+                        <div class="history-total">Total: $${item.total}</div>
+                    </div>
+                    <span>#${history.length - index}</span>
+                `;
+                
+                historyContainer.appendChild(div);
+            });
+        }
+
+        // Replay history item
+        function replayHistory(index) {
+            const item = history[index];
+            editor.setValue(item.input);
+            displayResult(item.result);
+        }
+
+        // Clear history
+        function clearHistory() {
+            if (confirm('Clear all history?')) {
+                history = [];
+                document.getElementById('history').innerHTML = '';
+            }
+        }
+
+        // Show modifier builder
+        function showModifierBuilder() {
+            document.getElementById('modifierModal').classList.add('active');
+            checkForConflicts();
+        }
+
+        // Close modifier builder
+        function closeModifierBuilder() {
+            document.getElementById('modifierModal').classList.remove('active');
+        }
+
+        // Update modifier form based on type
+        function updateModifierForm() {
+            const type = document.getElementById('modifierType').value;
+            const valueInput = document.getElementById('modifierValue');
+            
+            if (type === 'percentage') {
+                valueInput.placeholder = 'e.g., -10 for 10% discount';
+            } else if (type === 'fixed') {
+                valueInput.placeholder = 'e.g., 25 for $25 fee';
+            } else if (type === 'margin') {
+                valueInput.placeholder = 'e.g., 30 for 30% margin';
+            }
+            
+            checkForConflicts();
+        }
+
+        // Check for conflicts
+        function checkForConflicts() {
+            try {
+                const input = JSON.parse(editor.getValue());
+                const conflicts = [];
+                
+                const newId = document.getElementById('modifierId').value;
+                const newType = document.getElementById('modifierType').value;
+                const newPriority = parseInt(document.getElementById('chainPriority').value);
+                
+                // Check for duplicate ID
+                if (newId && input.modifiers?.some(m => m.id === newId)) {
+                    conflicts.push('A modifier with this ID already exists');
+                }
+                
+                // Check for same priority
+                if (input.modifiers?.some(m => (m.chain_priority || 1000) === newPriority)) {
+                    conflicts.push('Another modifier has the same chain priority');
+                }
+                
+                // Check for multiple margins
+                if (newType === 'margin' && input.modifiers?.some(m => m.modifier_type === 'margin')) {
+                    conflicts.push('A margin modifier already exists');
+                }
+                
+                // Display conflicts
+                const warningDiv = document.getElementById('conflictWarning');
+                const conflictList = document.getElementById('conflictList');
+                
+                if (conflicts.length > 0) {
+                    conflictList.innerHTML = conflicts.map(c => `<li>${c}</li>`).join('');
+                    warningDiv.style.display = 'block';
+                } else {
+                    warningDiv.style.display = 'none';
+                }
+            } catch (e) {
+                // Invalid JSON, can't check for conflicts
+            }
+        }
+
+        // Add modifier
+        function addModifier() {
+            try {
+                const input = JSON.parse(editor.getValue());
+                
+                const modifier = {
+                    id: document.getElementById('modifierId').value || 'mod-' + Date.now(),
+                    modifier_type: document.getElementById('modifierType').value,
+                    value: parseFloat(document.getElementById('modifierValue').value),
+                    application_type: document.getElementById('applicationType').value,
+                    category: document.getElementById('modifierCategory').value || undefined,
+                    tax_setting: document.getElementById('modifierTaxSetting').value,
+                    chain_priority: parseInt(document.getElementById('chainPriority').value),
+                    display_mode: document.getElementById('displayMode').value,
+                    affects_quantity: document.getElementById('affectsQuantity').checked,
+                    product_id: document.getElementById('modifierProductId').value || undefined
+                };
+                
+                // Remove undefined fields
+                Object.keys(modifier).forEach(key => {
+                    if (modifier[key] === undefined) {
+                        delete modifier[key];
+                    }
+                });
+                
+                // Validate
+                const errors = [];
+                if (!modifier.id) errors.push('ID is required');
+                if (isNaN(modifier.value)) errors.push('Value must be a number');
+                if (modifier.modifier_type === 'margin' && (modifier.value < 0 || modifier.value > 100)) {
+                    errors.push('Margin must be between 0 and 100');
+                }
+                
+                if (errors.length > 0) {
+                    const errorDiv = document.getElementById('validationErrors');
+                    const errorList = document.getElementById('errorList');
+                    errorList.innerHTML = errors.map(e => `<li>${e}</li>`).join('');
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+                
+                // Add modifier
+                if (!input.modifiers) {
+                    input.modifiers = [];
+                }
+                input.modifiers.push(modifier);
+                
+                // Update editor
+                editor.setValue(JSON.stringify(input, null, 2));
+                
+                // Close modal
+                closeModifierBuilder();
+                
+                // Calculate if in live mode
+                if (liveMode) {
+                    calculate();
+                }
+            } catch (error) {
+                showError('Failed to add modifier: ' + error.message);
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const result = document.getElementById('result');
+            result.innerHTML = `<div class="error-message">${message}</div>`;
+        }
+
+        // Show success message
+        function showSuccess(message) {
+            const result = document.getElementById('result');
+            result.innerHTML = `<div class="success-message">${message}</div>`;
+        }
+    </script>
+</body>
+</html>

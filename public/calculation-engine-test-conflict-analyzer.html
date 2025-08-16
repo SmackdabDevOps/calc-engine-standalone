@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculation Engine - Conflict & Coverage Analyzer</title>
+    
+    <!-- CodeMirror for JSON editing -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.11/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.11/theme/monokai.min.css">
+    
+    <!-- D3.js for dependency graph -->
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e1e2e 0%, #151521 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .panel {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .panel h2 {
+            margin-bottom: 15px;
+            color: #fff;
+            font-size: 1.3em;
+        }
+        
+        .CodeMirror {
+            height: 400px;
+            font-size: 14px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px 5px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .quick-scenario-btn {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            font-size: 14px;
+            margin: 5px;
+        }
+        
+        .quick-scenario-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        #conflictPanel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 300px;
+        }
+        
+        #coveragePanel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 300px;
+        }
+        
+        .conflict-item {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 10px 0;
+        }
+        
+        .warning-item {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 10px 0;
+        }
+        
+        .success-item {
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 10px 0;
+        }
+        
+        .severity-critical {
+            border-left: 4px solid #f44336;
+            padding-left: 16px;
+        }
+        
+        .severity-warning {
+            border-left: 4px solid #ffc107;
+            padding-left: 16px;
+        }
+        
+        .severity-info {
+            border-left: 4px solid #2196f3;
+            padding-left: 16px;
+        }
+        
+        #dependencyGraph {
+            width: 100%;
+            height: 400px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+            margin-top: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #graphPanel.fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 9999;
+            background: linear-gradient(135deg, #1e1e2e 0%, #151521 100%);
+            padding: 20px;
+            margin: 0;
+            max-width: none;
+            border-radius: 0;
+        }
+        
+        #graphPanel.fullscreen #dependencyGraph {
+            height: calc(100vh - 120px);
+        }
+        
+        .affected-item {
+            display: inline-block;
+            background: rgba(102, 126, 234, 0.2);
+            border: 1px solid #667eea;
+            border-radius: 4px;
+            padding: 4px 8px;
+            margin: 4px;
+            font-size: 14px;
+        }
+        
+        .resolution-suggestion {
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+        }
+        
+        .resolution-suggestion h4 {
+            color: #4caf50;
+            margin-bottom: 8px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        
+        .stat-label {
+            color: #888;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            color: #fff;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        /* D3 Graph Styles */
+        .node {
+            cursor: pointer;
+        }
+        
+        .node circle {
+            fill: #667eea;
+            stroke: #fff;
+            stroke-width: 2px;
+        }
+        
+        .node.conflict {
+            fill: #f44336;
+        }
+        
+        .node.warning {
+            fill: #ffc107;
+        }
+        
+        .link {
+            fill: none;
+            stroke: #667eea;
+            stroke-width: 2px;
+        }
+        
+        .link.conflict {
+            stroke: #f44336;
+            stroke-dasharray: 5,5;
+        }
+        
+        .warningPanel {
+            background: rgba(255, 193, 7, 0.05);
+            border: 1px solid rgba(255, 193, 7, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .untested-path {
+            color: #ffc107;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Conflict & Coverage Analyzer</h1>
+        <p class="subtitle">Pre-run Conflict Detection and Dependency Analysis</p>
+        
+        <div class="main-grid">
+            <!-- Input Panel -->
+            <div class="panel">
+                <h2>Input Configuration</h2>
+                
+                <div style="margin-bottom: 15px;">
+                    <h3 style="color: #667eea; font-size: 14px; margin-bottom: 10px;">Quick Test Scenarios</h3>
+                    <button class="quick-scenario-btn" onclick="loadScenario('circular')">Circular Dependency</button>
+                    <button class="quick-scenario-btn" onclick="loadScenario('conflict')">Conflicting Modifiers</button>
+                    <button class="quick-scenario-btn" onclick="loadScenario('complex')">Complex Dependencies</button>
+                    <button class="quick-scenario-btn" onclick="loadScenario('valid')">Valid Configuration</button>
+                </div>
+                
+                <textarea id="inputJson" style="display: none;"></textarea>
+                
+                <!-- Action Buttons -->
+                <div style="text-align: center; margin-top: 15px;">
+                    <button onclick="analyzeConflicts()">🔍 Analyze Conflicts & Coverage</button>
+                    <button onclick="runWithAnalysis()">🚀 Run with Pre-Analysis</button>
+                </div>
+                
+                <!-- Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Conflicts</div>
+                        <div class="stat-value" id="conflictCount">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Warnings</div>
+                        <div class="stat-value" id="warningCount">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Coverage</div>
+                        <div class="stat-value" id="coveragePercent">0%</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Severity</div>
+                        <div class="stat-value" id="maxSeverity">OK</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Analysis Results Panel -->
+            <div class="panel">
+                <h2>Analysis Results</h2>
+                
+                <!-- Conflict Detection Panel -->
+                <div id="conflictPanel">
+                    <h3 style="color: #f44336; margin-bottom: 10px;">Conflicts Detected</h3>
+                    <div id="conflictList">
+                        <p style="color: #888;">No conflicts detected yet. Run analysis to check.</p>
+                    </div>
+                </div>
+                
+                <!-- Coverage Analysis Panel -->
+                <div id="coveragePanel" style="margin-top: 20px;">
+                    <h3 style="color: #4caf50; margin-bottom: 10px;">Coverage Analysis</h3>
+                    <div id="coverageAnalysis">
+                        <p style="color: #888;">Coverage report will appear here after analysis.</p>
+                    </div>
+                    <div id="affectedItems"></div>
+                </div>
+                
+                <!-- Warning Panel -->
+                <div class="warningPanel">
+                    <h3 style="color: #ffc107; margin-bottom: 10px;">Warnings & Suggestions</h3>
+                    <div id="warningsList">
+                        <p style="color: #888;">No warnings to display.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dependency Graph -->
+        <div class="panel" id="graphPanel">
+            <h2>Dependency Graph Visualization</h2>
+            <div style="margin-bottom: 15px;">
+                <button onclick="toggleFullscreen()" style="background: rgba(255, 255, 255, 0.1); padding: 8px 16px; margin-right: 10px;">🔳 Fullscreen</button>
+                <button onclick="resetZoom()" style="background: rgba(255, 255, 255, 0.1); padding: 8px 16px; margin-right: 10px;">🔄 Reset View</button>
+                <button onclick="zoomIn()" style="background: rgba(255, 255, 255, 0.1); padding: 8px 16px; margin-right: 10px;">➕ Zoom In</button>
+                <button onclick="zoomOut()" style="background: rgba(255, 255, 255, 0.1); padding: 8px 16px;">➖ Zoom Out</button>
+            </div>
+            <div id="dependencyGraph"></div>
+            <div id="nodeDetails" style="display: none; position: absolute; background: rgba(0, 0, 0, 0.9); color: white; padding: 10px; border-radius: 8px; font-size: 14px; pointer-events: none; z-index: 1000;"></div>
+        </div>
+    </div>
+    
+    <!-- CodeMirror JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.11/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.11/mode/javascript/javascript.min.js"></script>
+    
+    <script>
+        // Global variables
+        let inputEditor;
+        let analysisResults = null;
+        let currentZoom = 1;
+        let svg = null;
+        let g = null;
+        let zoom = null;
+        
+        // Test scenarios with known issues
+        const scenarios = {
+            circular: {
+                name: "Circular Dependency",
+                data: {
+                    proposalId: "conflict-test-001",
+                    lineItems: [
+                        {
+                            id: "item-1",
+                            unitPrice: "100.00",
+                            quantity: 1,
+                            taxSetting: "TAXABLE"
+                        }
+                    ],
+                    modifiers: [
+                        {
+                            id: "mod-a",
+                            modifier_type: "percentage",
+                            value: "-10",
+                            application_type: "pre_tax",
+                            chain_priority: 1
+                        },
+                        {
+                            id: "mod-b",
+                            modifier_type: "percentage",
+                            value: "-5",
+                            application_type: "pre_tax",
+                            chain_priority: 2
+                        }
+                    ],
+                    dependencies: [
+                        {
+                            modifier_id: "mod-a",
+                            depends_on: "mod-b"
+                        },
+                        {
+                            modifier_id: "mod-b",
+                            depends_on: "mod-a"
+                        }
+                    ],
+                    config: {
+                        schemaVersion: "1.0",
+                        tax_rate: "0.10",
+                        tax_mode: "RETAIL"
+                    }
+                }
+            },
+            conflict: {
+                name: "Conflicting Modifiers",
+                data: {
+                    proposalId: "conflict-test-002",
+                    lineItems: [
+                        {
+                            id: "item-1",
+                            unitPrice: "200.00",
+                            quantity: 2,
+                            taxSetting: "TAXABLE"
+                        }
+                    ],
+                    modifiers: [
+                        {
+                            id: "exclusive-discount-1",
+                            modifier_type: "percentage",
+                            value: "-20",
+                            application_type: "pre_tax",
+                            chain_priority: 1,
+                            exclusive: true
+                        },
+                        {
+                            id: "exclusive-discount-2",
+                            modifier_type: "percentage",
+                            value: "-15",
+                            application_type: "pre_tax",
+                            chain_priority: 1,
+                            exclusive: true
+                        }
+                    ],
+                    dependencies: [],
+                    config: {
+                        schemaVersion: "1.0",
+                        tax_rate: "0.08",
+                        tax_mode: "RETAIL"
+                    }
+                }
+            },
+            complex: {
+                name: "Complex Dependencies",
+                data: {
+                    proposalId: "conflict-test-003",
+                    lineItems: [
+                        {
+                            id: "item-1",
+                            unitPrice: "150.00",
+                            quantity: 2,
+                            taxSetting: "TAXABLE"
+                        },
+                        {
+                            id: "item-2",
+                            unitPrice: "75.00",
+                            quantity: 3,
+                            taxSetting: "EXEMPT"
+                        }
+                    ],
+                    modifiers: [
+                        {
+                            id: "base-discount",
+                            modifier_type: "percentage",
+                            value: "-10",
+                            application_type: "pre_tax",
+                            chain_priority: 1
+                        },
+                        {
+                            id: "volume-discount",
+                            modifier_type: "percentage",
+                            value: "-5",
+                            application_type: "pre_tax",
+                            chain_priority: 2
+                        },
+                        {
+                            id: "shipping-fee",
+                            modifier_type: "fixed",
+                            value: "25.00",
+                            application_type: "post_tax",
+                            chain_priority: 3
+                        },
+                        {
+                            id: "loyalty-discount",
+                            modifier_type: "percentage",
+                            value: "-3",
+                            application_type: "post_tax",
+                            chain_priority: 4
+                        }
+                    ],
+                    dependencies: [
+                        {
+                            modifier_id: "volume-discount",
+                            depends_on: "base-discount"
+                        },
+                        {
+                            modifier_id: "loyalty-discount",
+                            depends_on: "volume-discount"
+                        }
+                    ],
+                    config: {
+                        schemaVersion: "1.0",
+                        tax_rate: "0.09",
+                        tax_mode: "RETAIL"
+                    }
+                }
+            },
+            valid: {
+                name: "Valid Configuration",
+                data: {
+                    proposalId: "conflict-test-004",
+                    lineItems: [
+                        {
+                            id: "item-1",
+                            unitPrice: "100.00",
+                            quantity: 2,
+                            taxSetting: "TAXABLE"
+                        }
+                    ],
+                    modifiers: [
+                        {
+                            id: "early-bird",
+                            modifier_type: "percentage",
+                            value: "-15",
+                            application_type: "pre_tax",
+                            chain_priority: 1
+                        },
+                        {
+                            id: "handling-fee",
+                            modifier_type: "fixed",
+                            value: "10.00",
+                            application_type: "pre_tax",
+                            chain_priority: 2
+                        }
+                    ],
+                    dependencies: [],
+                    config: {
+                        schemaVersion: "1.0",
+                        tax_rate: "0.0875",
+                        tax_mode: "RETAIL"
+                    }
+                }
+            }
+        };
+        
+        // Initialize CodeMirror
+        function initializeEditor() {
+            inputEditor = CodeMirror.fromTextArea(document.getElementById('inputJson'), {
+                mode: 'application/json',
+                theme: 'monokai',
+                lineNumbers: true,
+                lineWrapping: true,
+                autoCloseBrackets: true,
+                matchBrackets: true,
+                indentUnit: 2,
+                tabSize: 2
+            });
+            
+            // Load complex scenario by default
+            loadScenario('complex');
+        }
+        
+        // Load scenario
+        function loadScenario(type) {
+            const scenario = scenarios[type];
+            if (scenario) {
+                inputEditor.setValue(JSON.stringify(scenario.data, null, 2));
+                console.log(`Loaded scenario: ${scenario.name}`);
+            }
+        }
+        
+        // Analyze conflicts and coverage
+        function analyzeConflicts() {
+            try {
+                const input = JSON.parse(inputEditor.getValue());
+                analysisResults = performAnalysis(input);
+                displayResults(analysisResults);
+                drawDependencyGraph(input, analysisResults);
+            } catch (error) {
+                console.error('Analysis error:', error);
+                displayError(error.message);
+            }
+        }
+        
+        // Perform the actual analysis
+        function performAnalysis(input) {
+            const results = {
+                conflicts: [],
+                warnings: [],
+                suggestions: [],
+                coverage: {
+                    affectedItems: [],
+                    untestedPaths: [],
+                    percentage: 0
+                },
+                severity: 'OK'
+            };
+            
+            // Check for circular dependencies
+            const circularDeps = detectCircularDependencies(input.dependencies || []);
+            if (circularDeps.length > 0) {
+                results.conflicts.push({
+                    type: 'circular_dependency',
+                    severity: 'critical',
+                    message: `Circular dependency detected: ${circularDeps.join(' → ')}`,
+                    affectedModifiers: circularDeps
+                });
+                results.severity = 'CRITICAL';
+            }
+            
+            // Check for incompatible modifiers
+            const incompatibilities = checkIncompatibleModifiers(input.modifiers || []);
+            incompatibilities.forEach(issue => {
+                results.conflicts.push(issue);
+                if (issue.severity === 'critical') {
+                    results.severity = 'CRITICAL';
+                }
+            });
+            
+            // Validate chain priority
+            const priorityIssues = validateChainPriority(input.modifiers || [], input.dependencies || []);
+            priorityIssues.forEach(issue => {
+                results.warnings.push(issue);
+                if (results.severity === 'OK') {
+                    results.severity = 'WARNING';
+                }
+            });
+            
+            // Calculate coverage
+            results.coverage = calculateCoverage(input);
+            
+            // Check for untested paths
+            const untestedPaths = findUntestedPaths(input);
+            if (untestedPaths.length > 0) {
+                results.warnings.push({
+                    type: 'untested_paths',
+                    severity: 'warning',
+                    message: `${untestedPaths.length} untested execution path(s) detected`,
+                    paths: untestedPaths
+                });
+            }
+            
+            // Generate resolution suggestions
+            results.suggestions = generateSuggestions(results.conflicts, results.warnings);
+            
+            return results;
+        }
+        
+        // Detect circular dependencies
+        function detectCircularDependencies(dependencies) {
+            if (!dependencies || dependencies.length === 0) return [];
+            
+            const graph = {};
+            dependencies.forEach(dep => {
+                if (!graph[dep.modifier_id]) graph[dep.modifier_id] = [];
+                graph[dep.modifier_id].push(dep.depends_on);
+            });
+            
+            const visited = new Set();
+            const stack = new Set();
+            const cycles = [];
+            
+            function dfs(node, path = []) {
+                if (stack.has(node)) {
+                    const cycleStart = path.indexOf(node);
+                    cycles.push(path.slice(cycleStart).concat(node));
+                    return true;
+                }
+                
+                if (visited.has(node)) return false;
+                
+                visited.add(node);
+                stack.add(node);
+                path.push(node);
+                
+                if (graph[node]) {
+                    for (const neighbor of graph[node]) {
+                        if (dfs(neighbor, [...path])) {
+                            return true;
+                        }
+                    }
+                }
+                
+                stack.delete(node);
+                return false;
+            }
+            
+            Object.keys(graph).forEach(node => {
+                if (!visited.has(node)) {
+                    dfs(node, []);
+                }
+            });
+            
+            return cycles.length > 0 ? cycles[0] : [];
+        }
+        
+        // Check for incompatible modifier combinations
+        function checkIncompatibleModifiers(modifiers) {
+            const issues = [];
+            
+            // Check for multiple exclusive modifiers
+            const exclusiveModifiers = modifiers.filter(m => m.exclusive);
+            if (exclusiveModifiers.length > 1) {
+                issues.push({
+                    type: 'exclusive_conflict',
+                    severity: 'critical',
+                    message: `Multiple exclusive modifiers detected: ${exclusiveModifiers.map(m => m.id).join(', ')}`,
+                    affectedModifiers: exclusiveModifiers.map(m => m.id)
+                });
+            }
+            
+            // Check for conflicting priority at same level
+            const priorityGroups = {};
+            modifiers.forEach(m => {
+                const key = `${m.chain_priority}_${m.application_type}`;
+                if (!priorityGroups[key]) priorityGroups[key] = [];
+                priorityGroups[key].push(m);
+            });
+            
+            Object.entries(priorityGroups).forEach(([key, group]) => {
+                if (group.length > 1 && !group.some(m => m.depends_on)) {
+                    issues.push({
+                        type: 'priority_conflict',
+                        severity: 'warning',
+                        message: `Multiple modifiers at priority ${key}: ${group.map(m => m.id).join(', ')}`,
+                        affectedModifiers: group.map(m => m.id)
+                    });
+                }
+            });
+            
+            return issues;
+        }
+        
+        // Validate chain priority ordering (validatePriority/checkChainOrder)
+        function validatePriority(modifiers, dependencies) {
+            return validateChainPriority(modifiers, dependencies);
+        }
+        
+        function checkChainOrder(modifiers, dependencies) {
+            return validateChainPriority(modifiers, dependencies);
+        }
+        
+        function validateChainPriority(modifiers, dependencies) {
+            const issues = [];
+            
+            // Build dependency map
+            const depMap = {};
+            dependencies.forEach(dep => {
+                depMap[dep.modifier_id] = dep.depends_on;
+            });
+            
+            // Check that dependencies respect priority order
+            modifiers.forEach(modifier => {
+                if (depMap[modifier.id]) {
+                    const dependsOn = modifiers.find(m => m.id === depMap[modifier.id]);
+                    if (dependsOn && dependsOn.chain_priority > modifier.chain_priority) {
+                        issues.push({
+                            type: 'priority_order',
+                            severity: 'warning',
+                            message: `${modifier.id} (priority ${modifier.chain_priority}) depends on ${dependsOn.id} (priority ${dependsOn.chain_priority})`,
+                            suggestion: 'Dependencies should have lower or equal priority'
+                        });
+                    }
+                }
+            });
+            
+            return issues;
+        }
+        
+        // Calculate coverage
+        function calculateCoverage(input) {
+            const totalItems = input.lineItems.length;
+            const totalModifiers = input.modifiers ? input.modifiers.length : 0;
+            
+            // Determine which items are affected by modifiers
+            const affectedItems = new Set();
+            
+            // For simplicity, assume all modifiers affect all items unless specified
+            input.lineItems.forEach(item => {
+                if (totalModifiers > 0) {
+                    affectedItems.add(item.id);
+                }
+            });
+            
+            const coverage = {
+                affectedItems: Array.from(affectedItems),
+                totalItems: totalItems,
+                totalModifiers: totalModifiers,
+                percentage: totalItems > 0 ? Math.round((affectedItems.size / totalItems) * 100) : 0
+            };
+            
+            return coverage;
+        }
+        
+        // Find untested paths
+        function findUntestedPaths(input) {
+            const paths = [];
+            
+            // Check for modifiers without line items
+            if (input.modifiers && input.modifiers.length > 0 && (!input.lineItems || input.lineItems.length === 0)) {
+                paths.push('Modifiers defined but no line items to apply to');
+            }
+            
+            // Check for tax settings without tax config
+            const hasTaxableItems = input.lineItems && input.lineItems.some(item => item.taxSetting === 'TAXABLE');
+            if (hasTaxableItems && (!input.config || !input.config.tax_rate)) {
+                paths.push('Taxable items without tax configuration');
+            }
+            
+            // Check for post-tax modifiers without taxable items
+            const hasPostTaxModifiers = input.modifiers && input.modifiers.some(m => m.application_type === 'post_tax');
+            if (hasPostTaxModifiers && !hasTaxableItems) {
+                paths.push('Post-tax modifiers without taxable items');
+            }
+            
+            return paths;
+        }
+        
+        // Generate resolution suggestions (suggestResolution/fixSuggestions)
+        function suggestResolution(conflicts, warnings) {
+            return generateSuggestions(conflicts, warnings);
+        }
+        
+        function fixSuggestions(conflicts, warnings) {
+            return generateSuggestions(conflicts, warnings);
+        }
+        
+        function conflictResolution(conflicts, warnings) {
+            return generateSuggestions(conflicts, warnings);
+        }
+        
+        function generateSuggestions(conflicts, warnings) {
+            const suggestions = [];
+            
+            conflicts.forEach(conflict => {
+                if (conflict.type === 'circular_dependency') {
+                    suggestions.push({
+                        issue: 'Circular dependency',
+                        resolution: 'Remove one of the dependencies to break the cycle',
+                        priority: 'high'
+                    });
+                }
+                if (conflict.type === 'exclusive_conflict') {
+                    suggestions.push({
+                        issue: 'Multiple exclusive modifiers',
+                        resolution: 'Remove exclusive flag from all but one modifier, or use only one exclusive modifier',
+                        priority: 'high'
+                    });
+                }
+            });
+            
+            warnings.forEach(warning => {
+                if (warning.type === 'priority_conflict') {
+                    suggestions.push({
+                        issue: 'Priority conflict',
+                        resolution: 'Adjust chain_priority values to ensure unique priorities, or add dependencies',
+                        priority: 'medium'
+                    });
+                }
+                if (warning.type === 'untested_paths') {
+                    suggestions.push({
+                        issue: 'Untested paths',
+                        resolution: 'Add test cases to cover all execution paths',
+                        priority: 'low'
+                    });
+                }
+            });
+            
+            return suggestions;
+        }
+        
+        // Display analysis results
+        function displayResults(results) {
+            // Update stats
+            document.getElementById('conflictCount').textContent = results.conflicts.length;
+            document.getElementById('warningCount').textContent = results.warnings.length;
+            document.getElementById('coveragePercent').textContent = results.coverage.percentage + '%';
+            document.getElementById('maxSeverity').textContent = results.severity;
+            document.getElementById('maxSeverity').style.color = 
+                results.severity === 'CRITICAL' ? '#f44336' :
+                results.severity === 'WARNING' ? '#ffc107' : '#4caf50';
+            
+            // Display conflicts
+            const conflictList = document.getElementById('conflictList');
+            if (results.conflicts.length > 0) {
+                conflictList.innerHTML = results.conflicts.map(conflict => `
+                    <div class="conflict-item severity-${conflict.severity}">
+                        <strong>${conflict.type.replace('_', ' ').toUpperCase()}</strong><br>
+                        ${conflict.message}
+                    </div>
+                `).join('');
+            } else {
+                conflictList.innerHTML = '<div class="success-item">✅ No conflicts detected</div>';
+            }
+            
+            // Display coverage
+            const coverageAnalysis = document.getElementById('coverageAnalysis');
+            coverageAnalysis.innerHTML = `
+                <p>Coverage: ${results.coverage.percentage}%</p>
+                <p>${results.coverage.affectedItems.length} of ${results.coverage.totalItems} items affected</p>
+                <p>${results.coverage.totalModifiers} modifiers configured</p>
+            `;
+            
+            // Display affected items
+            const affectedItemsDiv = document.getElementById('affectedItems');
+            if (results.coverage.affectedItems.length > 0) {
+                affectedItemsDiv.innerHTML = '<h4>Affected Items:</h4>' +
+                    results.coverage.affectedItems.map(item => 
+                        `<span class="affected-item">${item}</span>`
+                    ).join('');
+            }
+            
+            // Display warnings
+            const warningsList = document.getElementById('warningsList');
+            if (results.warnings.length > 0) {
+                warningsList.innerHTML = results.warnings.map(warning => `
+                    <div class="warning-item severity-${warning.severity}">
+                        <strong>${warning.type.replace('_', ' ').toUpperCase()}</strong><br>
+                        ${warning.message}
+                        ${warning.paths ? '<br><span class="untested-path">Paths: ' + warning.paths.join(', ') + '</span>' : ''}
+                    </div>
+                `).join('');
+            } else {
+                warningsList.innerHTML = '<p style="color: #4caf50;">✅ No warnings</p>';
+            }
+            
+            // Display suggestions
+            if (results.suggestions.length > 0) {
+                const suggestionsHtml = results.suggestions.map(suggestion => `
+                    <div class="resolution-suggestion">
+                        <h4>Fix for: ${suggestion.issue}</h4>
+                        <p>${suggestion.resolution}</p>
+                        <small>Priority: ${suggestion.priority}</small>
+                    </div>
+                `).join('');
+                warningsList.innerHTML += suggestionsHtml;
+            }
+        }
+        
+        // Display error
+        function displayError(message) {
+            const conflictList = document.getElementById('conflictList');
+            conflictList.innerHTML = `<div class="conflict-item severity-critical">
+                <strong>ANALYSIS ERROR</strong><br>
+                ${message}
+            </div>`;
+        }
+        
+        // Draw dependency graph using D3
+        function drawDependencyGraph(input, analysis) {
+            const container = d3.select('#dependencyGraph');
+            container.selectAll('*').remove();
+            
+            const rect = container.node().getBoundingClientRect();
+            const width = rect.width;
+            const height = document.getElementById('graphPanel').classList.contains('fullscreen') 
+                ? window.innerHeight - 120 
+                : 400;
+            
+            svg = container.append('svg')
+                .attr('width', width)
+                .attr('height', height);
+            
+            // Add zoom behavior
+            zoom = d3.zoom()
+                .scaleExtent([0.1, 10])
+                .on('zoom', (event) => {
+                    g.attr('transform', event.transform);
+                    currentZoom = event.transform.k;
+                });
+            
+            svg.call(zoom);
+            
+            // Create a group for all elements (for zooming)
+            g = svg.append('g');
+            
+            // Build nodes and links
+            const nodes = [];
+            const links = [];
+            
+            // Add line items as nodes
+            if (input.lineItems) {
+                input.lineItems.forEach(item => {
+                    nodes.push({
+                        id: item.id,
+                        type: 'item',
+                        label: `${item.id}\n$${parseFloat(item.unitPrice) * item.quantity}`
+                    });
+                });
+            }
+            
+            // Add modifiers as nodes
+            if (input.modifiers) {
+                input.modifiers.forEach(modifier => {
+                    const hasConflict = analysis.conflicts.some(c => 
+                        c.affectedModifiers && c.affectedModifiers.includes(modifier.id)
+                    );
+                    nodes.push({
+                        id: modifier.id,
+                        type: 'modifier',
+                        label: `${modifier.id}\n${modifier.value}${modifier.modifier_type === 'percentage' ? '%' : ''}`,
+                        hasConflict: hasConflict
+                    });
+                });
+            }
+            
+            // Add dependencies as links
+            if (input.dependencies) {
+                input.dependencies.forEach(dep => {
+                    const hasConflict = analysis.conflicts.some(c => 
+                        c.type === 'circular_dependency' && 
+                        c.affectedModifiers && c.affectedModifiers.includes(dep.modifier_id)
+                    );
+                    links.push({
+                        source: dep.depends_on,
+                        target: dep.modifier_id,
+                        hasConflict: hasConflict
+                    });
+                });
+            }
+            
+            // Create force simulation
+            const simulation = d3.forceSimulation(nodes)
+                .force('link', d3.forceLink(links).id(d => d.id).distance(100))
+                .force('charge', d3.forceManyBody().strength(-300))
+                .force('center', d3.forceCenter(width / 2, height / 2));
+            
+            // Add links
+            const link = g.append('g')
+                .selectAll('line')
+                .data(links)
+                .enter().append('line')
+                .attr('class', d => d.hasConflict ? 'link conflict' : 'link')
+                .attr('stroke-width', 2);
+            
+            // Add nodes
+            const node = g.append('g')
+                .selectAll('g')
+                .data(nodes)
+                .enter().append('g')
+                .attr('class', d => d.hasConflict ? 'node conflict' : 'node')
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended));
+            
+            node.append('circle')
+                .attr('r', 25)
+                .attr('fill', d => {
+                    if (d.hasConflict) return '#f44336';
+                    if (d.type === 'item') return '#4caf50';
+                    return '#667eea';
+                });
+            
+            node.append('text')
+                .text(d => d.id)
+                .attr('text-anchor', 'middle')
+                .attr('dy', '.35em')
+                .attr('fill', 'white')
+                .style('font-size', '12px');
+            
+            // Add tooltip
+            // Enhanced node interaction
+            node.on('mouseenter', function(event, d) {
+                // Highlight the node
+                d3.select(this).select('circle')
+                    .transition()
+                    .duration(200)
+                    .attr('r', 30)
+                    .attr('stroke-width', 3);
+                
+                // Show details
+                const details = document.getElementById('nodeDetails');
+                details.innerHTML = `
+                    <strong>${d.id}</strong><br>
+                    Type: ${d.type}<br>
+                    ${d.type === 'modifier' ? `Value: ${d.label.split('\n')[1]}` : `Amount: ${d.label.split('\n')[1]}`}
+                    ${d.hasConflict ? '<br><span style="color: #f44336;">⚠️ Has Conflicts</span>' : ''}
+                `;
+                details.style.display = 'block';
+                details.style.left = (event.pageX + 10) + 'px';
+                details.style.top = (event.pageY - 10) + 'px';
+            })
+            .on('mouseleave', function(event, d) {
+                // Reset node size
+                d3.select(this).select('circle')
+                    .transition()
+                    .duration(200)
+                    .attr('r', 25)
+                    .attr('stroke-width', 2);
+                
+                // Hide details
+                document.getElementById('nodeDetails').style.display = 'none';
+            })
+            .on('click', function(event, d) {
+                // Show more detailed information on click
+                alert(`Node Details:\n\nID: ${d.id}\nType: ${d.type}\n${d.label.replace('\n', '\n')}`);
+            });
+            
+            node.append('title')
+                .text(d => d.label);
+            
+            // Update positions on tick
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+                
+                node
+                    .attr('transform', d => `translate(${d.x},${d.y})`);
+            });
+            
+            // Drag functions
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+            
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+            
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+        }
+        
+        // Run calculation with pre-analysis
+        async function runWithAnalysis() {
+            // First run analysis
+            analyzeConflicts();
+            
+            // Check if there are critical issues
+            if (analysisResults && analysisResults.severity === 'CRITICAL') {
+                if (!confirm('Critical conflicts detected! Do you want to proceed anyway?')) {
+                    return;
+                }
+            }
+            
+            // Run calculation
+            try {
+                const input = JSON.parse(inputEditor.getValue());
+                
+                const response = await fetch('/api/engine/calculate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(input)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    console.log('Calculation successful:', result);
+                    alert(`Calculation completed successfully!\nTotal: $${result.customerGrandTotal}`);
+                } else {
+                    console.error('Calculation failed:', result);
+                    alert('Calculation failed: ' + (result.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error running calculation: ' + error.message);
+            }
+        }
+        
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            initializeEditor();
+            
+            // Auto-analyze after a delay
+            setTimeout(() => {
+                analyzeConflicts();
+            }, 500);
+        });
+        
+        // Fullscreen toggle
+        function toggleFullscreen() {
+            const panel = document.getElementById('graphPanel');
+            panel.classList.toggle('fullscreen');
+            
+            // Redraw the graph with new dimensions
+            if (analysisResults) {
+                const input = JSON.parse(inputEditor.getValue());
+                drawDependencyGraph(input, analysisResults);
+            }
+        }
+        
+        // Zoom controls
+        function zoomIn() {
+            if (svg && zoom) {
+                svg.transition().duration(300).call(zoom.scaleBy, 1.3);
+            }
+        }
+        
+        function zoomOut() {
+            if (svg && zoom) {
+                svg.transition().duration(300).call(zoom.scaleBy, 0.7);
+            }
+        }
+        
+        function resetZoom() {
+            if (svg && zoom) {
+                svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity);
+            }
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                analyzeConflicts();
+            }
+            
+            // Fullscreen shortcut (F key)
+            if (e.key === 'f' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                const activeElement = document.activeElement;
+                if (activeElement.tagName !== 'TEXTAREA' && activeElement.tagName !== 'INPUT') {
+                    e.preventDefault();
+                    toggleFullscreen();
+                }
+            }
+            
+            // Zoom shortcuts
+            if (e.key === '=' || e.key === '+') {
+                e.preventDefault();
+                zoomIn();
+            }
+            if (e.key === '-' || e.key === '_') {
+                e.preventDefault();
+                zoomOut();
+            }
+            if (e.key === '0') {
+                e.preventDefault();
+                resetZoom();
+            }
+            
+            // ESC to exit fullscreen
+            if (e.key === 'Escape') {
+                const panel = document.getElementById('graphPanel');
+                if (panel.classList.contains('fullscreen')) {
+                    panel.classList.remove('fullscreen');
+                    if (analysisResults) {
+                        const input = JSON.parse(inputEditor.getValue());
+                        drawDependencyGraph(input, analysisResults);
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
