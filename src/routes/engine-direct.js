@@ -58,12 +58,25 @@ router.post('/calculate', async (req, res) => {
  * Get engine information
  */
 router.get('/info', (req, res) => {
-  const engines = CalculationEngineFactory.getRegisteredEngines();
-  res.json({
-    availableEngines: engines,
-    defaultEngine: 'pure',
-    version: '3.0.0'
-  });
+  try {
+    const engines = CalculationEngineFactory.getRegisteredEngines();
+    
+    // Get default engine instance to retrieve version and capabilities
+    const engine = CalculationEngineFactory.getEngine({ ENGINE_TYPE: 'pure' });
+    
+    res.json({
+      availableEngines: engines,
+      defaultEngine: 'pure',
+      version: engine.getVersion(),
+      capabilities: engine.getCapabilities()
+    });
+  } catch (error) {
+    console.error('Error getting engine info:', error);
+    res.status(500).json({
+      error: 'Failed to get engine info',
+      message: error.message
+    });
+  }
 });
 
 /**
@@ -72,13 +85,13 @@ router.get('/info', (req, res) => {
  */
 router.get('/fixtures', (req, res) => {
   // Return some standard test fixtures
-  res.json({
-    fixtures: [
-      { id: 'simple', name: 'Simple Calculation', description: 'Basic line items with tax' },
-      { id: 'discount', name: 'With Discount', description: 'Percentage discount modifier' },
-      { id: 'complex', name: 'Complex Scenario', description: 'Multiple modifiers and dependencies' }
-    ]
-  });
+  const fixtures = [
+    { id: 'simple', name: 'Simple Calculation', description: 'Basic line items with tax' },
+    { id: 'discount', name: 'With Discount', description: 'Percentage discount modifier' },
+    { id: 'complex', name: 'Complex Scenario', description: 'Multiple modifiers and dependencies' }
+  ];
+  
+  res.json(fixtures);
 });
 
 /**
