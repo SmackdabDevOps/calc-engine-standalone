@@ -7,6 +7,10 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+
+// Register all calculation engines (this triggers engine registration)
+require('./src/engines');
+
 const engineDirectRouter = require('./src/routes/engine-direct');
 
 const app = express();
