@@ -12,6 +12,9 @@
     <!-- Mermaid.js for flow diagrams -->
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     
+    <!-- D3.js for zoom/pan controls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    
     <style>
         * {
             margin: 0;
@@ -113,7 +116,13 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            overflow: auto;
+            overflow: hidden;
+            position: relative;
+            cursor: grab;
+        }
+        
+        #flowDiagram.panning {
+            cursor: grabbing;
         }
         
         .flow-diagram {
@@ -210,6 +219,125 @@
         .edgePath path {
             stroke: #667eea !important;
         }
+        
+        /* Zoom controls */
+        .zoom-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .zoom-btn {
+            background: rgba(102, 126, 234, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        
+        .zoom-btn:hover {
+            background: rgba(102, 126, 234, 1);
+            transform: scale(1.1);
+        }
+        
+        /* Node detail modal */
+        .node-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        
+        .modal-content {
+            background: linear-gradient(135deg, #1e1e2e 0%, #151521 100%);
+            border: 1px solid rgba(102, 126, 234, 0.5);
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            color: #667eea;
+            font-size: 1.5em;
+            margin: 0;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .close-btn:hover {
+            color: #fff;
+        }
+        
+        .modal-section {
+            margin-bottom: 15px;
+        }
+        
+        .modal-section h4 {
+            color: #764ba2;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .modal-section p {
+            margin: 5px 0;
+            color: #e0e0e0;
+        }
+        
+        /* Fullscreen mode */
+        .fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1000;
+            background: #1e1e2e;
+        }
+        
+        .fullscreen #flowDiagram {
+            min-height: calc(100vh - 100px);
+            border-radius: 0;
+        }
     </style>
 </head>
 <body>
@@ -265,27 +393,70 @@
                 <div class="controls">
                     <button class="control-btn" onclick="toggleNodeDetails()">🔍 Toggle Details</button>
                     <button class="control-btn" onclick="changeFlowDirection()">↔️ Change Direction</button>
+                    <button class="control-btn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+                    <button class="control-btn" onclick="resetZoom()">🎯 Reset View</button>
                     <button class="control-btn export-btn" onclick="exportDiagram()">📸 Export Image</button>
                     <button class="control-btn" onclick="downloadSVG()">⬇️ Download SVG</button>
                 </div>
                 
                 <div id="flowDiagram" class="flow-diagram">
-                    <div class="mermaid" id="mermaidDiagram">
-                        graph TD
-                            Start[Start Calculation] --> Input[Input Data]
-                            Input --> LineItems[Process Line Items]
-                            LineItems --> Base[Calculate Base Total]
-                            Base --> Ready[Ready for Flow]
-                            
-                            style Start fill:#667eea,stroke:#fff,stroke-width:2px
-                            style Ready fill:#764ba2,stroke:#fff,stroke-width:2px
+                    <div class="zoom-controls">
+                        <div class="zoom-btn" onclick="zoomIn()" title="Zoom In">+</div>
+                        <div class="zoom-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+                        <div class="zoom-btn" onclick="resetZoom()" title="Reset Zoom">⌂</div>
                     </div>
+                    <svg id="flowSvgContainer" width="100%" height="100%">
+                        <g id="flowContent">
+                            <foreignObject width="100%" height="100%">
+                                <div class="mermaid" id="mermaidDiagram">
+                                    graph TD
+                                        Start[Start Calculation] --> Input[Input Data]
+                                        Input --> LineItems[Process Line Items]
+                                        LineItems --> Base[Calculate Base Total]
+                                        Base --> Ready[Ready for Flow]
+                                        
+                                        style Start fill:#667eea,stroke:#fff,stroke-width:2px
+                                        style Ready fill:#764ba2,stroke:#fff,stroke-width:2px
+                                </div>
+                            </foreignObject>
+                        </g>
+                    </svg>
                 </div>
                 
                 <div id="nodeDetail" class="node-detail">
                     <h3 id="nodeTitle">Node Details</h3>
                     <p id="nodeValue">Value: $0.00</p>
                     <p id="nodeDescription">Description</p>
+                </div>
+                
+                <!-- Node Detail Modal -->
+                <div id="nodeModal" class="node-modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2 class="modal-title" id="modalTitle">Node Details</h2>
+                            <button class="close-btn" onclick="closeNodeModal()">&times;</button>
+                        </div>
+                        <div class="modal-section">
+                            <h4>Value</h4>
+                            <p id="modalValue">$0.00</p>
+                        </div>
+                        <div class="modal-section">
+                            <h4>Description</h4>
+                            <p id="modalDescription">Node description</p>
+                        </div>
+                        <div class="modal-section" id="modalLineItems" style="display: none;">
+                            <h4>Line Items</h4>
+                            <div id="modalLineItemsList"></div>
+                        </div>
+                        <div class="modal-section" id="modalModifiers" style="display: none;">
+                            <h4>Modifiers</h4>
+                            <div id="modalModifiersList"></div>
+                        </div>
+                        <div class="modal-section" id="modalCalculations" style="display: none;">
+                            <h4>Calculations</h4>
+                            <div id="modalCalculationsList"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -320,6 +491,10 @@
         let lastResult = null;
         let flowDirection = 'TD'; // Top-Down by default
         let showDetails = false;
+        let zoomTransform = { x: 0, y: 0, k: 1 };
+        let isDragging = false;
+        let dragStart = { x: 0, y: 0 };
+        let isFullscreen = false;
         
         // Test scenarios
         const scenarios = {
@@ -615,32 +790,282 @@
                 node.style.cursor = 'pointer';
                 node.addEventListener('click', handleNodeClick);
             });
+            
+            // Add zoom/pan controls
+            initializeZoomPan();
+        }
+        
+        // Initialize zoom and pan functionality
+        function initializeZoomPan() {
+            const flowDiagram = document.getElementById('flowDiagram');
+            const flowContent = document.getElementById('flowContent');
+            
+            // Mouse wheel zoom
+            flowDiagram.addEventListener('wheel', handleWheel, { passive: false });
+            
+            // Mouse drag pan
+            flowDiagram.addEventListener('mousedown', handleMouseDown);
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+            
+            // Apply initial transform
+            updateTransform();
+        }
+        
+        // Handle mouse wheel for zooming
+        function handleWheel(event) {
+            event.preventDefault();
+            
+            const delta = event.deltaY > 0 ? 0.9 : 1.1;
+            const rect = event.currentTarget.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+            
+            // Calculate zoom point
+            const newScale = Math.max(0.1, Math.min(5, zoomTransform.k * delta));
+            const scaleRatio = newScale / zoomTransform.k;
+            
+            zoomTransform.x = mouseX - (mouseX - zoomTransform.x) * scaleRatio;
+            zoomTransform.y = mouseY - (mouseY - zoomTransform.y) * scaleRatio;
+            zoomTransform.k = newScale;
+            
+            updateTransform();
+        }
+        
+        // Handle mouse down for dragging
+        function handleMouseDown(event) {
+            if (event.target.closest('.node') || event.target.closest('.zoom-controls')) {
+                return; // Don't pan when clicking on nodes or controls
+            }
+            
+            isDragging = true;
+            dragStart.x = event.clientX - zoomTransform.x;
+            dragStart.y = event.clientY - zoomTransform.y;
+            
+            document.getElementById('flowDiagram').classList.add('panning');
+        }
+        
+        // Handle mouse move for dragging
+        function handleMouseMove(event) {
+            if (!isDragging) return;
+            
+            zoomTransform.x = event.clientX - dragStart.x;
+            zoomTransform.y = event.clientY - dragStart.y;
+            
+            updateTransform();
+        }
+        
+        // Handle mouse up
+        function handleMouseUp() {
+            isDragging = false;
+            document.getElementById('flowDiagram').classList.remove('panning');
+        }
+        
+        // Update transform
+        function updateTransform() {
+            const flowContent = document.getElementById('flowContent');
+            if (flowContent) {
+                flowContent.style.transform = `translate(${zoomTransform.x}px, ${zoomTransform.y}px) scale(${zoomTransform.k})`;
+                flowContent.style.transformOrigin = '0 0';
+            }
+        }
+        
+        // Zoom functions
+        function zoomIn() {
+            zoomTransform.k = Math.min(5, zoomTransform.k * 1.2);
+            updateTransform();
+        }
+        
+        function zoomOut() {
+            zoomTransform.k = Math.max(0.1, zoomTransform.k * 0.8);
+            updateTransform();
+        }
+        
+        // Reset zoom and pan
+        function resetZoom() {
+            zoomTransform = { x: 0, y: 0, k: 1 };
+            updateTransform();
+        }
+        
+        // Toggle fullscreen
+        function toggleFullscreen() {
+            const panel = document.querySelector('.panel:has(#flowDiagram)');
+            isFullscreen = !isFullscreen;
+            
+            if (isFullscreen) {
+                panel.classList.add('fullscreen');
+            } else {
+                panel.classList.remove('fullscreen');
+            }
         }
         
         // Handle node click for expansion
         function handleNodeClick(event) {
-            if (!showDetails) return;
+            event.stopPropagation();
             
             const nodeElement = event.currentTarget;
             const nodeText = nodeElement.textContent;
-            const detailDiv = document.getElementById('nodeDetail');
-            const rect = nodeElement.getBoundingClientRect();
             
-            // Update detail content
-            document.getElementById('nodeTitle').textContent = nodeText.split('\n')[0];
-            document.getElementById('nodeValue').textContent = nodeText.includes('$') ? nodeText.match(/\$[\d,]+\.?\d*/)[0] : 'N/A';
-            document.getElementById('nodeDescription').textContent = getNodeDescription(nodeText);
-            
-            // Position and show detail
-            detailDiv.style.left = `${rect.right + 10}px`;
-            detailDiv.style.top = `${rect.top}px`;
-            detailDiv.style.display = 'block';
-            
-            // Hide after 3 seconds
-            setTimeout(() => {
-                detailDiv.style.display = 'none';
-            }, 3000);
+            // Always show modal on click
+            showNodeModal(nodeText);
         }
+        
+        // Show node modal with detailed information
+        function showNodeModal(nodeText) {
+            const modal = document.getElementById('nodeModal');
+            const title = document.getElementById('modalTitle');
+            const value = document.getElementById('modalValue');
+            const description = document.getElementById('modalDescription');
+            
+            // Extract node information
+            const nodeInfo = parseNodeText(nodeText);
+            
+            // Update modal content
+            title.textContent = nodeInfo.title;
+            value.textContent = nodeInfo.value;
+            description.textContent = nodeInfo.description;
+            
+            // Show additional sections based on node type
+            updateModalSections(nodeInfo);
+            
+            // Show modal
+            modal.style.display = 'flex';
+        }
+        
+        // Parse node text to extract information
+        function parseNodeText(nodeText) {
+            const lines = nodeText.split('\n').filter(line => line.trim());
+            const firstLine = lines[0] || 'Unknown Node';
+            const valueMatch = nodeText.match(/\$[\d,]+\.?\d*/g);
+            const value = valueMatch ? valueMatch[valueMatch.length - 1] : 'N/A';
+            
+            return {
+                title: firstLine.replace(/\$[\d,]+\.?\d*/g, '').trim(),
+                value: value,
+                description: getNodeDescription(firstLine),
+                type: getNodeType(firstLine),
+                rawText: nodeText
+            };
+        }
+        
+        // Get node type
+        function getNodeType(nodeText) {
+            if (nodeText.includes('Line Items') || nodeText.includes('item-')) return 'lineItems';
+            if (nodeText.includes('Discount') || nodeText.includes('Fee')) return 'modifier';
+            if (nodeText.includes('Tax')) return 'tax';
+            if (nodeText.includes('Total')) return 'total';
+            return 'calculation';
+        }
+        
+        // Update modal sections based on node type
+        function updateModalSections(nodeInfo) {
+            const lineItemsSection = document.getElementById('modalLineItems');
+            const modifiersSection = document.getElementById('modalModifiers');
+            const calculationsSection = document.getElementById('modalCalculations');
+            
+            // Hide all sections initially
+            lineItemsSection.style.display = 'none';
+            modifiersSection.style.display = 'none';
+            calculationsSection.style.display = 'none';
+            
+            // Show relevant sections based on node type
+            if (nodeInfo.type === 'lineItems' && window.calculationInput) {
+                showLineItemsDetails(lineItemsSection);
+            } else if (nodeInfo.type === 'modifier' && window.calculationResult) {
+                showModifiersDetails(modifiersSection);
+            } else if (nodeInfo.type === 'total' && window.calculationResult) {
+                showCalculationsDetails(calculationsSection);
+            }
+        }
+        
+        // Show line items details
+        function showLineItemsDetails(section) {
+            const lineItemsList = document.getElementById('modalLineItemsList');
+            const input = window.calculationInput;
+            
+            if (input && input.lineItems) {
+                let html = '';
+                input.lineItems.forEach((item, index) => {
+                    const total = parseFloat(item.unitPrice) * item.quantity;
+                    html += `
+                        <div style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <strong>${item.id}</strong><br/>
+                            Price: $${parseFloat(item.unitPrice).toFixed(2)} × ${item.quantity} = $${total.toFixed(2)}<br/>
+                            Tax Setting: ${item.taxSetting}
+                        </div>
+                    `;
+                });
+                lineItemsList.innerHTML = html;
+                section.style.display = 'block';
+            }
+        }
+        
+        // Show modifiers details
+        function showModifiersDetails(section) {
+            const modifiersList = document.getElementById('modalModifiersList');
+            const result = window.calculationResult;
+            
+            if (result && result.adjustments) {
+                let html = '';
+                result.adjustments.forEach((adj, index) => {
+                    html += `
+                        <div style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <strong>${adj.modifier_id || `Modifier ${index + 1}`}</strong><br/>
+                            Type: ${adj.modifier_type}<br/>
+                            Amount: $${parseFloat(adj.amount || 0).toFixed(2)}<br/>
+                            Application: ${adj.application_type}
+                        </div>
+                    `;
+                });
+                modifiersList.innerHTML = html;
+                section.style.display = 'block';
+            }
+        }
+        
+        // Show calculations details
+        function showCalculationsDetails(section) {
+            const calculationsList = document.getElementById('modalCalculationsList');
+            const result = window.calculationResult;
+            
+            if (result) {
+                const html = `
+                    <div style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <strong>Subtotal:</strong> $${parseFloat(result.subtotal || 0).toFixed(2)}
+                    </div>
+                    <div style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <strong>Modifier Total:</strong> $${parseFloat(result.modifierTotal || 0).toFixed(2)}
+                    </div>
+                    <div style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <strong>Tax:</strong> $${parseFloat(result.retailTax || 0).toFixed(2)}
+                    </div>
+                    <div style="padding: 8px;">
+                        <strong>Grand Total:</strong> $${parseFloat(result.customerGrandTotal || 0).toFixed(2)}
+                    </div>
+                `;
+                calculationsList.innerHTML = html;
+                section.style.display = 'block';
+            }
+        }
+        
+        // Close node modal
+        function closeNodeModal() {
+            document.getElementById('nodeModal').style.display = 'none';
+        }
+        
+        // Close modal when clicking outside
+        document.addEventListener('click', (event) => {
+            const modal = document.getElementById('nodeModal');
+            if (event.target === modal) {
+                closeNodeModal();
+            }
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeNodeModal();
+            }
+        });
         
         // Get node description
         function getNodeDescription(nodeText) {
