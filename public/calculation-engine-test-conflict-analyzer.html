@@ -278,6 +278,115 @@
             color: #ffc107;
             font-style: italic;
         }
+        
+        /* Node Detail Modal */
+        .node-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        
+        .modal-content {
+            background: linear-gradient(135deg, #1e1e2e 0%, #151521 100%);
+            border: 1px solid rgba(102, 126, 234, 0.5);
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            color: #667eea;
+            font-size: 1.5em;
+            margin: 0;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+        
+        .close-btn:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .modal-section {
+            margin-bottom: 20px;
+        }
+        
+        .modal-section h4 {
+            color: #764ba2;
+            margin-bottom: 10px;
+            font-size: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 5px;
+        }
+        
+        .modal-section p {
+            margin: 8px 0;
+            color: #e0e0e0;
+            line-height: 1.4;
+        }
+        
+        .json-display {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #e0e0e0;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        
+        .conflict-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .conflict-indicator.conflict {
+            background: #f44336;
+        }
+        
+        .conflict-indicator.warning {
+            background: #ffc107;
+        }
+        
+        .conflict-indicator.success {
+            background: #4caf50;
+        }
     </style>
 </head>
 <body>
@@ -369,6 +478,43 @@
             </div>
             <div id="dependencyGraph"></div>
             <div id="nodeDetails" style="display: none; position: absolute; background: rgba(0, 0, 0, 0.9); color: white; padding: 10px; border-radius: 8px; font-size: 14px; pointer-events: none; z-index: 1000;"></div>
+        </div>
+        
+        <!-- Node Detail Modal -->
+        <div id="nodeModal" class="node-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="modalTitle">Node Details</h2>
+                    <button class="close-btn" onclick="closeNodeModal()">&times;</button>
+                </div>
+                
+                <div class="modal-section">
+                    <h4>Basic Information</h4>
+                    <p><strong>ID:</strong> <span id="modalNodeId">-</span></p>
+                    <p><strong>Type:</strong> <span id="modalNodeType">-</span></p>
+                    <p><strong>Status:</strong> <span id="modalNodeStatus"><span class="conflict-indicator success"></span>No Issues</span></p>
+                </div>
+                
+                <div class="modal-section" id="modalNodeValue">
+                    <h4>Value Information</h4>
+                    <p id="modalValueText">-</p>
+                </div>
+                
+                <div class="modal-section" id="modalConflicts" style="display: none;">
+                    <h4>Conflicts & Issues</h4>
+                    <div id="modalConflictsList"></div>
+                </div>
+                
+                <div class="modal-section" id="modalDependencies" style="display: none;">
+                    <h4>Dependencies</h4>
+                    <div id="modalDependenciesList"></div>
+                </div>
+                
+                <div class="modal-section">
+                    <h4>Raw JSON Data</h4>
+                    <div class="json-display" id="modalJsonData">-</div>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -1123,8 +1269,8 @@
                 document.getElementById('nodeDetails').style.display = 'none';
             })
             .on('click', function(event, d) {
-                // Show more detailed information on click
-                alert(`Node Details:\n\nID: ${d.id}\nType: ${d.type}\n${d.label.replace('\n', '\n')}`);
+                // Show detailed modal on click
+                showNodeModal(d, input, analysis);
             });
             
             node.append('title')
@@ -1200,6 +1346,136 @@
             }
         }
         
+        // Show node modal with detailed information
+        function showNodeModal(nodeData, inputData, analysisData) {
+            const modal = document.getElementById('nodeModal');
+            const title = document.getElementById('modalTitle');
+            const nodeId = document.getElementById('modalNodeId');
+            const nodeType = document.getElementById('modalNodeType');
+            const nodeStatus = document.getElementById('modalNodeStatus');
+            const nodeValue = document.getElementById('modalNodeValue');
+            const valueText = document.getElementById('modalValueText');
+            const conflictsSection = document.getElementById('modalConflicts');
+            const conflictsList = document.getElementById('modalConflictsList');
+            const dependenciesSection = document.getElementById('modalDependencies');
+            const dependenciesList = document.getElementById('modalDependenciesList');
+            const jsonData = document.getElementById('modalJsonData');
+            
+            // Basic information
+            title.textContent = `Node: ${nodeData.id}`;
+            nodeId.textContent = nodeData.id;
+            nodeType.textContent = nodeData.type;
+            
+            // Status with conflict indicator
+            if (nodeData.hasConflict) {
+                nodeStatus.innerHTML = '<span class="conflict-indicator conflict"></span>Has Conflicts';
+            } else {
+                nodeStatus.innerHTML = '<span class="conflict-indicator success"></span>No Issues';
+            }
+            
+            // Value information
+            if (nodeData.type === 'modifier') {
+                const modifier = inputData.modifiers.find(m => m.id === nodeData.id);
+                if (modifier) {
+                    valueText.innerHTML = `
+                        <strong>Modifier Type:</strong> ${modifier.modifier_type}<br>
+                        <strong>Value:</strong> ${modifier.value}${modifier.modifier_type === 'percentage' ? '%' : ''}<br>
+                        <strong>Application:</strong> ${modifier.application_type}<br>
+                        <strong>Priority:</strong> ${modifier.chain_priority}
+                        ${modifier.exclusive ? '<br><strong>Exclusive:</strong> Yes' : ''}
+                    `;
+                }
+            } else if (nodeData.type === 'item') {
+                const item = inputData.lineItems.find(i => i.id === nodeData.id);
+                if (item) {
+                    const total = parseFloat(item.unitPrice) * item.quantity;
+                    valueText.innerHTML = `
+                        <strong>Unit Price:</strong> $${parseFloat(item.unitPrice).toFixed(2)}<br>
+                        <strong>Quantity:</strong> ${item.quantity}<br>
+                        <strong>Total:</strong> $${total.toFixed(2)}<br>
+                        <strong>Tax Setting:</strong> ${item.taxSetting}
+                    `;
+                }
+            }
+            
+            // Conflicts and issues
+            if (nodeData.hasConflict) {
+                const nodeConflicts = analysisData.conflicts.filter(c => 
+                    c.affectedModifiers && c.affectedModifiers.includes(nodeData.id)
+                );
+                
+                if (nodeConflicts.length > 0) {
+                    conflictsList.innerHTML = nodeConflicts.map(conflict => `
+                        <div style="padding: 10px; margin: 5px 0; background: rgba(244, 67, 54, 0.1); border: 1px solid rgba(244, 67, 54, 0.3); border-radius: 5px;">
+                            <strong>${conflict.type.replace('_', ' ').toUpperCase()}</strong><br>
+                            ${conflict.message}
+                        </div>
+                    `).join('');
+                    conflictsSection.style.display = 'block';
+                } else {
+                    conflictsSection.style.display = 'none';
+                }
+            } else {
+                conflictsSection.style.display = 'none';
+            }
+            
+            // Dependencies
+            if (nodeData.type === 'modifier') {
+                const incoming = inputData.dependencies.filter(d => d.modifier_id === nodeData.id);
+                const outgoing = inputData.dependencies.filter(d => d.depends_on === nodeData.id);
+                
+                if (incoming.length > 0 || outgoing.length > 0) {
+                    let depHtml = '';
+                    
+                    if (incoming.length > 0) {
+                        depHtml += '<p><strong>Depends on:</strong></p>';
+                        incoming.forEach(dep => {
+                            depHtml += `<div style="margin: 5px 0; padding: 5px; background: rgba(102, 126, 234, 0.1); border-radius: 3px;">${dep.depends_on}</div>`;
+                        });
+                    }
+                    
+                    if (outgoing.length > 0) {
+                        depHtml += '<p><strong>Required by:</strong></p>';
+                        outgoing.forEach(dep => {
+                            depHtml += `<div style="margin: 5px 0; padding: 5px; background: rgba(118, 75, 162, 0.1); border-radius: 3px;">${dep.modifier_id}</div>`;
+                        });
+                    }
+                    
+                    dependenciesList.innerHTML = depHtml;
+                    dependenciesSection.style.display = 'block';
+                } else {
+                    dependenciesSection.style.display = 'none';
+                }
+            } else {
+                dependenciesSection.style.display = 'none';
+            }
+            
+            // Raw JSON data
+            if (nodeData.type === 'modifier') {
+                const modifier = inputData.modifiers.find(m => m.id === nodeData.id);
+                jsonData.textContent = JSON.stringify(modifier, null, 2);
+            } else if (nodeData.type === 'item') {
+                const item = inputData.lineItems.find(i => i.id === nodeData.id);
+                jsonData.textContent = JSON.stringify(item, null, 2);
+            }
+            
+            // Show modal
+            modal.style.display = 'flex';
+        }
+        
+        // Close node modal
+        function closeNodeModal() {
+            document.getElementById('nodeModal').style.display = 'none';
+        }
+        
+        // Close modal when clicking outside
+        document.addEventListener('click', (event) => {
+            const modal = document.getElementById('nodeModal');
+            if (event.target === modal) {
+                closeNodeModal();
+            }
+        });
+        
         // Initialize on page load
         window.addEventListener('DOMContentLoaded', () => {
             initializeEditor();
@@ -1271,10 +1547,16 @@
                 resetZoom();
             }
             
-            // ESC to exit fullscreen
+            // ESC to exit fullscreen or close modal
             if (e.key === 'Escape') {
+                const modal = document.getElementById('nodeModal');
                 const panel = document.getElementById('graphPanel');
-                if (panel.classList.contains('fullscreen')) {
+                
+                // First try to close modal
+                if (modal.style.display === 'flex') {
+                    closeNodeModal();
+                } else if (panel.classList.contains('fullscreen')) {
+                    // Then try to exit fullscreen
                     panel.classList.remove('fullscreen');
                     if (analysisResults) {
                         const input = JSON.parse(inputEditor.getValue());
